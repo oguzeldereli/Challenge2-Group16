@@ -1,0 +1,6 @@
+@Challenge2_Group16_GUI_WebAPI_HostAddress = http://localhost:5223
+
+GET {{Challenge2_Group16_GUI_WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
