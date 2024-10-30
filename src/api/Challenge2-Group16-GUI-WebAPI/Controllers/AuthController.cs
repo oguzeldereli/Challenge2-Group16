@@ -7,6 +7,7 @@ using Challenge2_Group16_GUI_WebAPI.Models;
 using Challenge2_Group16_GUI_WebAPI.Services;
 using Azure.Core;
 using Microsoft.IdentityModel.Tokens;
+using Challenge2_Group16_GUI_WebAPI.Models;
 
 namespace Challenge2_Group16_GUI_WebAPI.Controllers
 {
@@ -34,14 +35,14 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
             TempData["state"] = request.State;
             TempData["code_challenge"] = request.CodeChallenge;
             TempData["code_challenge_method"] = request.CodeChallengeMethod;
-            
+
             return RedirectToAction("SignIn");
         }
 
         [HttpGet("SignIn")]
         public IActionResult SignIn()
         {
-            if((TempData.Peek("client_id") as string).IsNullOrEmpty() ||
+            if ((TempData.Peek("client_id") as string).IsNullOrEmpty() ||
                 (TempData.Peek("redirect_uri") as string).IsNullOrEmpty() ||
                 (TempData.Peek("response_type") as string).IsNullOrEmpty() ||
                 (TempData.Peek("scope") as string).IsNullOrEmpty() ||
