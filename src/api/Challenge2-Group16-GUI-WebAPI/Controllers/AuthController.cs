@@ -7,6 +7,7 @@ using Challenge2_Group16_GUI_WebAPI.Models;
 using Challenge2_Group16_GUI_WebAPI.Services;
 using Azure.Core;
 using Microsoft.IdentityModel.Tokens;
+using Challenge2_Group16_GUI_WebAPI.Models;
 
 namespace Challenge2_Group16_GUI_WebAPI.Controllers
 {

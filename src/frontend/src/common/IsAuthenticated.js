@@ -1,4 +1,5 @@
     // auth.js or similar file
+
 export async function isAuthenticated() 
 {
     try {

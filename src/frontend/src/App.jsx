@@ -20,7 +20,6 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Dashboard />} />
           </Route>  
-
           <Route path="/callback" element={<Callback />} />
           <Route path="*" element={<Notfound />} />
         </Routes>
