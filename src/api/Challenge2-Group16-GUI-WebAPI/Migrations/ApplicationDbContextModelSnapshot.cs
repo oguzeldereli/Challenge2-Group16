@@ -33,7 +33,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AccessTokenBlacklist");
+                    b.ToTable("AccessTokenBlacklist", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.AppUser", b =>
@@ -125,7 +125,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("DeviceStatusAggregateData");
+                    b.ToTable("DeviceStatusAggregateData", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.DeviceStatusData", b =>
@@ -148,7 +148,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("DeviceStatusData");
+                    b.ToTable("DeviceStatusData", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.ErrorAggregateData", b =>
@@ -175,7 +175,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("ErrorAggregateData");
+                    b.ToTable("ErrorAggregateData", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.ErrorData", b =>
@@ -197,7 +197,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("ErrorData");
+                    b.ToTable("ErrorData", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.RefreshToken", b =>
@@ -225,7 +225,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.RegisteredClient", b =>
@@ -262,7 +262,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Clients");
+                    b.ToTable("Clients", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.StirringAggregateData", b =>
@@ -289,7 +289,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("StirringAggregateData");
+                    b.ToTable("StirringAggregateData", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.StirringData", b =>
@@ -311,7 +311,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("StirringData");
+                    b.ToTable("StirringData", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.TempAggregateData", b =>
@@ -338,7 +338,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("TempAggregateData");
+                    b.ToTable("TempAggregateData", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.TempData", b =>
@@ -360,7 +360,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("TempData");
+                    b.ToTable("TempData", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.pHAggregateData", b =>
@@ -387,7 +387,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("pHAggregateData");
+                    b.ToTable("pHAggregateData", (string)null);
                 });
 
             modelBuilder.Entity("Challenge2_Group16_GUI_WebAPI.Models.pHData", b =>
@@ -409,7 +409,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("pHData");
+                    b.ToTable("pHData", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
