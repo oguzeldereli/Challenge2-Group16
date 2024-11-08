@@ -17,24 +17,31 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         private readonly AuthService _authService;
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
+        private readonly IConfiguration _configuration;
 
-        public AuthorizationController(AuthService authService, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager)
+        public AuthorizationController(AuthService authService,
+            UserManager<AppUser> userManager,
+            SignInManager<AppUser> signInManager,
+            IConfiguration configuration)
         {
             _authService = authService;
             _userManager = userManager;
             _signInManager = signInManager;
+            _configuration = configuration;
         }
 
         [HttpGet("authorize")]
         public IActionResult Authorize([FromQuery] AuthorizationRequest request)
         {
-            TempData["client_id"] = request.ClientId;
-            TempData["redirect_uri"] = request.RedirectUri;
-            TempData["response_type"] = request.ResponseType;
-            TempData["scope"] = request.Scope;
-            TempData["state"] = request.State;
-            TempData["code_challenge"] = request.CodeChallenge;
-            TempData["code_challenge_method"] = request.CodeChallengeMethod;
+            // get configuration from appsettings.json
+            
+            TempData["client_id"] = request.client_id == _configuration["ClientSettings:ClientId"] ? request.client_id : "";
+            TempData["redirect_uri"] = request.redirect_uri == _configuration["ClientSettings:RedirectUri"] ? request.redirect_uri : "";
+            TempData["response_type"] = request.response_type == _configuration["ClientSettings:ResponseType"] ? request.response_type : "";
+            TempData["scope"] = request.scope == _configuration["ClientSettings:Scope"] ? request.scope : "";
+            TempData["state"] = request.state;
+            TempData["code_challenge"] = request.code_challenge;
+            TempData["code_challenge_method"] = request.code_challenge_method == _configuration["ClientSettings:CodeChallengeMethod"] ? request.code_challenge_method : "";
 
             return RedirectToAction("SignIn");
         }
@@ -42,13 +49,13 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         [HttpGet("SignIn")]
         public IActionResult SignIn()
         {
-            if ((TempData.Peek("client_id") as string).IsNullOrEmpty() ||
-                (TempData.Peek("redirect_uri") as string).IsNullOrEmpty() ||
-                (TempData.Peek("response_type") as string).IsNullOrEmpty() ||
-                (TempData.Peek("scope") as string).IsNullOrEmpty() ||
-                (TempData.Peek("state") as string).IsNullOrEmpty() ||
-                (TempData.Peek("code_challenge") as string).IsNullOrEmpty() ||
-                (TempData.Peek("code_challenge_method") as string).IsNullOrEmpty())
+            if((TempData.Peek("client_id")?.ToString().IsNullOrEmpty() ?? true) ||
+                (TempData.Peek("redirect_uri")?.ToString().IsNullOrEmpty() ?? true) ||
+                (TempData.Peek("response_type")?.ToString().IsNullOrEmpty() ?? true) ||
+                (TempData.Peek("scope")?.ToString().IsNullOrEmpty() ?? true) ||
+                (TempData.Peek("state")?.ToString().IsNullOrEmpty() ?? true) ||
+                (TempData.Peek("code_challenge")?.ToString().IsNullOrEmpty() ?? true) ||
+                (TempData.Peek("code_challenge_method")?.ToString().IsNullOrEmpty() ?? true))
             {
                 return BadRequest(new { error = "missing_authorization_request" });
             }

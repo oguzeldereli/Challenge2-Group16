@@ -86,21 +86,16 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 var registerResult = await _registeredClientService.RegisterClientAsync(clientId, clientType);
                 if (registerResult == null)
                 {
-                    return DataPacketModel.InternalErrorResponse();
+                    return _packetHandlingService.InternalErrorResponse();
                 }
 
-                var dataPacketModel = DataPacketModel.RegisterResponse(registerResult.Secret, registerResult.SignatureKey, registerResult.EncryptionKey, registerResult.EncryptionIV);
-                var packetSignature = _packetService.SignPacket(dataPacketModel, registerResult.SignatureKey);
-                if (packetSignature == null)
-                {
-                    return DataPacketModel.InternalErrorResponse();
-                }
-
-                dataPacketModel.PacketSign = packetSignature;
+                // hmmmmm...
+                var dataPacketModel = _packetHandlingService.RegisterResponse(registerResult, registerResult.Secret, registerResult.SignatureKey, registerResult.EncryptionKey, registerResult.EncryptionIV);
+                
                 return dataPacketModel;
             }
 
-            return DataPacketModel.InvalidPacketResponse();
+            return _packetHandlingService.InvalidPacketResponse();
         }
 
         public async Task<DataPacketModel?> ParseAuthPacketAsync(string socketId, DataPacketModel packet)
@@ -117,36 +112,28 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 var temporaryAuthToken = await _registeredClientService.AuthorizeClientAsync(clientId, clientSecret);
                 if (temporaryAuthToken == null)
                 {
-                    return DataPacketModel.InternalErrorResponse();
+                    return _packetHandlingService.InternalErrorResponse();
                 }
 
                 var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(temporaryAuthToken));
                 if (registeredClient == null)
                 {
-                    return DataPacketModel.InternalErrorResponse();
+                    return _packetHandlingService.InternalErrorResponse();
                 }
 
                 var encryptedAuthToken = PacketService.Encrypt(temporaryAuthToken, registeredClient.EncryptionKey, registeredClient.EncryptionIV);
                 if (encryptedAuthToken == null)
                 {
-                    return DataPacketModel.InternalErrorResponse();
+                    return _packetHandlingService.InternalErrorResponse();
                 }
 
-                var dataPacketModel = DataPacketModel.AuthResponse(encryptedAuthToken);
-
-                var encryptedPacketSignature = _packetService.SignPacket(dataPacketModel, registeredClient.SignatureKey);
-                if (encryptedPacketSignature == null)
-                {
-                    return DataPacketModel.InternalErrorResponse();
-                }
-
-                dataPacketModel.PacketSign = encryptedPacketSignature;
+                var dataPacketModel = _packetHandlingService.AuthResponse(registeredClient, encryptedAuthToken);
 
                 _sockets.TryAdd(socketId, temporaryAuthToken);
                 return dataPacketModel;
             }
 
-            return DataPacketModel.InvalidPacketResponse();
+            return _packetHandlingService.InvalidPacketResponse();
         }
 
         public async Task<DataPacketModel?> ParseRevokeAuthPacketAsync(string socketId, DataPacketModel packet)
@@ -159,39 +146,28 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken == packet.AuthorizationToken);
                 if (registeredClient == null)
                 {
-                    return DataPacketModel.InvalidPacketResponse();
+                    return _packetHandlingService.InvalidPacketResponse();
                 }
 
                 var authValidationResult = ValidateAuthTokenAndSocketId(socketId, packet.AuthorizationToken);
                 if (authValidationResult == false)
                 {
-                    return DataPacketModel.InvalidPacketResponse();
+                    return _packetHandlingService.InvalidPacketResponse();
                 }
 
                 if (!await _registeredClientService.RevokeClientAsync(packet.AuthorizationToken))
                 {
-                    return DataPacketModel.InternalErrorResponse();
+                    return _packetHandlingService.InternalErrorResponse();
                 }
 
                 _sockets.TryRemove(socketId, out _);
 
-                var dataPacketModel = DataPacketModel.RevokeAuthResponse();
-                if (dataPacketModel == null)
-                {
-                    return DataPacketModel.InternalErrorResponse();
-                }
+                var dataPacketModel = _packetHandlingService.RevokeAuthResponse(registeredClient);
 
-                var encryptedPacketSignature = _packetService.SignPacket(dataPacketModel, registeredClient.SignatureKey);
-                if (encryptedPacketSignature == null)
-                {
-                    return DataPacketModel.InternalErrorResponse();
-                }
-
-                dataPacketModel.PacketSign = encryptedPacketSignature;
                 return dataPacketModel;
             }
 
-            return DataPacketModel.InvalidPacketResponse();
+            return _packetHandlingService.InvalidPacketResponse();
         }
 
         public async Task<DataPacketModel?> ParseDataPacketAsync(string socketId, DataPacketModel packet)
@@ -201,57 +177,60 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 var authValidationResult = ValidateAuthTokenAndSocketId(socketId, packet.AuthorizationToken);
                 if (authValidationResult == false)
                 {
-                    return DataPacketModel.InvalidPacketResponse();
+                    return _packetHandlingService.InvalidPacketResponse();
                 }
 
                 var decryptedData = _packetService.GetDecryptedData(packet);
                 if (decryptedData == null)
                 {
-                    return DataPacketModel.InternalErrorResponse();
+                    return _packetHandlingService.InternalErrorResponse();
                 }
 
                 var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
                 if (registeredClient == null)
                 {
-                    return DataPacketModel.InvalidPacketResponse();
+                    return _packetHandlingService.InvalidPacketResponse();
                 }
 
                 return await _packetHandlingService.HandleDataAsync(registeredClient, decryptedData, packet);
             }
 
-            return DataPacketModel.InvalidPacketResponse();
+            return _packetHandlingService.InvalidPacketResponse();
         }
 
         public async Task<DataPacketModel?> ParseErrorPacketAsync(string socketId, DataPacketModel packet)
         {
-            if (packet.PacketError == (uint)PacketError.None &&
-                    packet.PacketEncryptionMethod == (uint)PacketEncryptionMethod.AES)
+            if (packet.PacketEncryptionMethod == (uint)PacketEncryptionMethod.AES)
             {
                 var authValidationResult = ValidateAuthTokenAndSocketId(socketId, packet.AuthorizationToken);
                 if (authValidationResult == false)
                 {
-                    return DataPacketModel.InvalidPacketResponse();
+                    return _packetHandlingService.InvalidPacketResponse();
                 }
 
                 var decryptedData = _packetService.GetDecryptedData(packet);
                 if (decryptedData == null)
                 {
-                    return DataPacketModel.InternalErrorResponse();
+                    return _packetHandlingService.InternalErrorResponse();
                 }
 
                 var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
+                if (registeredClient == null)
+                {
+                    return _packetHandlingService.InvalidPacketResponse();
+                }
 
                 return await _packetHandlingService.HandleErrorAsync(registeredClient, (PacketError)packet.PacketError, decryptedData, packet);
             }
 
-            return DataPacketModel.InvalidPacketResponse();
+            return _packetHandlingService.InvalidPacketResponse();
         }
 
         public async Task<DataPacketModel?> ParsePacketAsync(string socketId, DataPacketModel packet)
         {
             if (_packetService.ValidatePacket(packet) == false)
             {
-                return DataPacketModel.InvalidPacketResponse();
+                return _packetHandlingService.InvalidPacketResponse();
             }
 
             if (packet.PacketType == (uint)PacketType.Register)
@@ -275,7 +254,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 return await ParseErrorPacketAsync(socketId, packet);
             }
 
-            return DataPacketModel.InvalidPacketResponse();
+            return _packetHandlingService.InvalidPacketResponse();
         }
 
         public async Task HandleAsync(WebSocket socket)
@@ -292,7 +271,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 var packet = DataPacketModel.Create(message);
                 if (packet == null)
                 {
-                    DataPacketModel dataPacketModel = DataPacketModel.MalformedPacketResponse();
+                    DataPacketModel dataPacketModel = _packetHandlingService.MalformedPacketResponse();
 
                     await _webSocketManagerService.SendAsync(socket, dataPacketModel.GetPacket());
                     continue;

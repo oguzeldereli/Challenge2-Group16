@@ -56,23 +56,28 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task<TokenResponse> ExchangeCodeForTokenAsync(TokenRequest request)
         {
-            if (!AuthorizationCodes.TryGetValue(request.Code, out var authCode))
+            if(request == null)
+            {
+                return null;
+            }
+
+            if (!AuthorizationCodes.TryGetValue(request.code, out var authCode))
             {
                 return null;
             }
 
             if (authCode.ExpiresAt < DateTime.UtcNow)
             {
-                AuthorizationCodes.TryRemove(request.Code, out _);
+                AuthorizationCodes.TryRemove(request.code, out _);
                 return null;
             }
 
-            if (authCode.ClientId != request.ClientId || authCode.RedirectUri != request.RedirectUri)
+            if (authCode.ClientId != request.client_id || authCode.RedirectUri != request.redirect_uri)
             {
                 return null;
             }
 
-            if (!ValidateCodeVerifier(request.CodeVerifier, authCode.CodeChallenge, authCode.CodeChallengeMethod))
+            if (!ValidateCodeVerifier(request.code_verifier, authCode.CodeChallenge, authCode.CodeChallengeMethod))
             {
                 return null;
             }
@@ -98,7 +103,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             _dbContext.RefreshTokens.Add(token);
             await _dbContext.SaveChangesAsync();
 
-            AuthorizationCodes.TryRemove(request.Code, out _);
+            AuthorizationCodes.TryRemove(request.code, out _);
 
             return new TokenResponse
             {

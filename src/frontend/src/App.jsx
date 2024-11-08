@@ -9,6 +9,7 @@ import {
 import Dashboard from "./pages/Dashboard"
 import Notfound from "./pages/NotFound"
 import ProtectedRoute from './components/ProtectedRoute';
+import Callback from './callback';
 
 function App() {
 
@@ -19,7 +20,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Dashboard />} />
           </Route>  
-
+          <Route path="/callback" element={<Callback />} />
           <Route path="*" element={<Notfound />} />
         </Routes>
       </Router>
