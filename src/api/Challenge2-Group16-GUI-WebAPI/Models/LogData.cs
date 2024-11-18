@@ -1,17 +1,19 @@
 ﻿using Challenge2_Group16_GUI_WebAPI.Interfaces;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Challenge2_Group16_GUI_WebAPI.Models
 {
-    public class ErrorAggregateData : IAggregateDataPacket
+    public class LogData : IDataPacket
     {
         public string Id { get; set; }
         public RegisteredClient Client { get; set; }
+        [ForeignKey("Client")]
         public string ClientId { get; set; }
         public DateTime TimeStamp { get; set; }
-        public byte[] DataTimeStamps { get; set; } // get 8 bytes at a time, cast into Datetime
-        public byte[] Errors { get; set; } // get 4 bytes at a time, cast into int
+        public string Type { get; set; }
+        public string Message { get; set; }
 
-        public ErrorAggregateData()
+        public LogData()
         {
             Id = Guid.NewGuid().ToString();
         }

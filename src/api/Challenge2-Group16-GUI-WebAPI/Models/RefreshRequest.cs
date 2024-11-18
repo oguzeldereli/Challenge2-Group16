@@ -2,8 +2,8 @@
 {
     public class RefreshRequest
     {
-        public string GrantType { get; set; }
-        public string RefreshToken { get; set; }
-        public string Scope { get; set; }
+        public string grant_type { get; set; }
+        public string refresh_token { get; set; }
+        public string scope { get; set; }
     }
 }

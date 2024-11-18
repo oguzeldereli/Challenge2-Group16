@@ -38,9 +38,9 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             {
                 client.DeviceStatusData.Add(data as DeviceStatusData);
             }
-            else if(typeof(T) == typeof(ErrorData) && data as ErrorData != null)
+            else if(typeof(T) == typeof(LogData) && data as LogData != null)
             {
-                client.ErrorData.Add(data as ErrorData);
+                client.ErrorData.Add(data as LogData);
             }
             else
             {
@@ -105,8 +105,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 {
                     deaggregatedData.Add(new TempData
                     {
-                        Temperature = Convert.ToDouble(tempDataAggregate?.TemperatureAggregate[(i * 8)..(i * 8 + 8)] ?? new byte[8]),
                         TimeStamp = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(tempDataAggregate?.DataTimeStamps[(i * 8)..(i * 8 + 8)] ?? new byte[8])).UtcDateTime,
+                        Temperature = Convert.ToDouble(tempDataAggregate?.TemperatureAggregate[(i * 8 + 8)..(i * 8 + 16)] ?? new byte[8]),
                         ClientId = client.Id
                     } as T2);
                 }
@@ -118,8 +118,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 {
                     deaggregatedData.Add(new StirringData
                     {
-                        RPM = Convert.ToDouble(stirringAggregateData?.RPMAggregate[(i * 8)..(i * 8 + 8)] ?? new byte[8]),
                         TimeStamp = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(stirringAggregateData?.DataTimeStamps[(i * 8)..(i * 8 + 8)] ?? new byte[8])).UtcDateTime,
+                        RPM = Convert.ToDouble(stirringAggregateData?.RPMAggregate[(i * 8 + 8)..(i * 8 + 16)] ?? new byte[8]),
                         ClientId = client.Id
                     } as T2);
                 }
@@ -131,8 +131,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 {
                     deaggregatedData.Add(new pHData
                     {
-                        pH = Convert.ToDouble(pHAggregateData?.pHAggregate[(i * 8)..(i * 8 + 8)] ?? new byte[8]),
                         TimeStamp = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(pHAggregateData?.DataTimeStamps[(i * 8)..(i * 8 + 8)] ?? new byte[8])).UtcDateTime,
+                        pH = Convert.ToDouble(pHAggregateData?.pHAggregate[(i * 8 + 8)..(i * 8 + 16)] ?? new byte[8]),
                         ClientId = client.Id
                     } as T2);
                 }
@@ -140,28 +140,36 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             else if (typeof(T1) == typeof(DeviceStatusAggregateData) && typeof(T2) == typeof(DeviceStatusData))
             {
                 var deviceStatusAggregateData = aggregateData as DeviceStatusAggregateData;
-                var statuses = deviceStatusAggregateData.Status.Split(';', StringSplitOptions.RemoveEmptyEntries);
                 for (int i = 0; i < dataCount; i++)
                 {
                     deaggregatedData.Add(new DeviceStatusData
                     {
-                        Status = statuses[i],
                         TimeStamp = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(deviceStatusAggregateData?.DataTimeStamps[(i * 8)..(i * 8 + 8)] ?? new byte[8])).UtcDateTime,
+                        Status = Convert.ToUInt32(deviceStatusAggregateData?.StatusAggregate[(i * 4 + 8)..(i * 4 + 12)] ?? new byte[4]),
                         ClientId = client.Id
                     } as T2);
                 }
             }
-            else if (typeof(T1) == typeof(ErrorAggregateData) && typeof(T2) == typeof(ErrorData))
+            else if (typeof(T1) == typeof(LogAggregateData) && typeof(T2) == typeof(LogData))
             {
-                var errorAggregateData = aggregateData as ErrorAggregateData;
+                var logAggregateData = aggregateData as LogAggregateData;
+                var lastColonIndex = -1;
+                var lastSemiColonIndex = -1;
                 for (int i = 0; i < dataCount; i++)
                 {
-                    deaggregatedData.Add(new ErrorData
+                    var cIndex = logAggregateData?.Logs.IndexOf(':', lastColonIndex + 1) ?? lastColonIndex;
+                    var scIndex = logAggregateData?.Logs.IndexOf(';', lastSemiColonIndex + 1) ?? lastSemiColonIndex;
+                    
+                    deaggregatedData.Add(new LogData
                     {
-                        Error = Convert.ToInt32(errorAggregateData?.Errors[(i * 4)..(i * 4 + 4)] ?? new byte[4]),
-                        TimeStamp = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(errorAggregateData?.DataTimeStamps[(i * 8)..(i * 8 + 8)] ?? new byte[8])).UtcDateTime,
+                        TimeStamp = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(logAggregateData?.DataTimeStamps[(i * 8)..(i * 8 + 8)] ?? new byte[8])).UtcDateTime,
+                        Type = logAggregateData?.Logs.Substring(lastSemiColonIndex + 1, cIndex - lastSemiColonIndex - 1) ?? "",
+                        Message = logAggregateData?.Logs.Substring(cIndex + 1, scIndex - cIndex - 1) ?? "",
                         ClientId = client.Id
                     } as T2);
+
+                    lastColonIndex = cIndex;
+                    lastSemiColonIndex = scIndex;
                 }
             }
             else

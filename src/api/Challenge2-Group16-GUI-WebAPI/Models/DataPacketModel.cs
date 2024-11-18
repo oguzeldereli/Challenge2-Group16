@@ -19,9 +19,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         None,
         MalformedPacket,
         InvalidPacket,
-        InternalError,
-        InvalidRequest,
-        InvalidResponse
+        InternalError
     }
 
 
@@ -44,8 +42,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         public uint PacketEncryptionMethod { get; set; } // 4 bytes
         public uint DataSize { get; set; } // 4 bytes
         public byte[] EncryptedData { get; set; } // DataSize bytes
-        public byte[] PacketSign { get; set; } // 32 bytes
-
+        public byte[] PacketSignature { get; set; } // 32 bytes
+            
         public DataPacketModel()
         {
             Signature = new byte[8];
@@ -53,7 +51,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             PacketIdentifier = new byte[16];
             AuthorizationToken = new byte[16];
             DataSize = 0;
-            PacketSign = new byte[32];
+            PacketSignature = new byte[32];
         }
 
         public static DataPacketModel? Create(byte[] packet)
@@ -109,7 +107,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
                 createdPacket.EncryptedData = packet[64..(64 + (int)createdPacket.DataSize)];
 
                 // 10. Extract PacketSign (last 32 bytes)
-                createdPacket.PacketSign = packet[(64 + (int)createdPacket.DataSize)..(96 + (int)createdPacket.DataSize)];
+                createdPacket.PacketSignature = packet[(64 + (int)createdPacket.DataSize)..(96 + (int)createdPacket.DataSize)];
             }
             catch (ArgumentOutOfRangeException ex)
             {
@@ -120,7 +118,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             return createdPacket;
         }
 
-        public static DataPacketModel MalformedPacketResponse()
+        public static DataPacketModel MalformedPacket()
         {
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = ValidSignature;
@@ -132,11 +130,11 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.None;
             dataPacketModel.DataSize = 0;
             dataPacketModel.EncryptedData = new byte[0];
-            dataPacketModel.PacketSign = new byte[32];
+            dataPacketModel.PacketSignature = new byte[32];
             return dataPacketModel;
         }
 
-        public static DataPacketModel InvalidPacketResponse()
+        public static DataPacketModel InvalidPacket()
         {
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = ValidSignature;
@@ -148,11 +146,11 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.None;
             dataPacketModel.DataSize = 0;
             dataPacketModel.EncryptedData = new byte[0];
-            dataPacketModel.PacketSign = new byte[32];
+            dataPacketModel.PacketSignature = new byte[32];
             return dataPacketModel;
         }
 
-        public static DataPacketModel InternalErrorResponse()
+        public static DataPacketModel InternalError()
         {
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = ValidSignature;
@@ -164,7 +162,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.None;
             dataPacketModel.DataSize = 0;
             dataPacketModel.EncryptedData = new byte[0];
-            dataPacketModel.PacketSign = new byte[32];
+            dataPacketModel.PacketSignature = new byte[32];
             return dataPacketModel;
         }
 
@@ -217,7 +215,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             return dataPacketModel;
         }
 
-        public static DataPacketModel DataReturnResponse(byte[] encryptedData)
+        public static DataPacketModel Data(byte[] encryptedData)
         {
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = DataPacketModel.ValidSignature;
@@ -232,7 +230,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             return dataPacketModel;
         }
 
-        public static DataPacketModel AckResponse(byte[] packetId)
+        public static DataPacketModel Ack(byte[] packetId)
         {
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = DataPacketModel.ValidSignature;
@@ -242,8 +240,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.PacketType = (uint)Models.PacketType.Ack;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
             dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.None;
-            dataPacketModel.DataSize = 1;
-            dataPacketModel.EncryptedData = new byte[1] { 0b00000000 };
+            dataPacketModel.DataSize = 0;
+            dataPacketModel.EncryptedData = new byte[0];
             return dataPacketModel;
         }
 
@@ -258,7 +256,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
                     BitConverter.GetBytes(PacketEncryptionMethod),
                     BitConverter.GetBytes(DataSize),
                     EncryptedData,
-                    PacketSign
+                    PacketSignature
                 );
         }
 

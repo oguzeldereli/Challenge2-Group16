@@ -10,7 +10,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         [ForeignKey("Client")]
         public string ClientId { get; set; }
         public DateTime TimeStamp { get; set; }
-        public string Status { get; set; }
+        public uint Status { get; set; }
 
         public DeviceStatusData()
         {
