@@ -7,6 +7,7 @@ using Challenge2_Group16_GUI_WebAPI.Models;
 using Challenge2_Group16_GUI_WebAPI.Services;
 using Azure.Core;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Challenge2_Group16_GUI_WebAPI.Controllers
 {
@@ -32,7 +33,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         [HttpGet("authorize")]
         public IActionResult Authorize([FromQuery] AuthorizationRequest request)
         {
-            // get configuration from appsettings.json
             
             TempData["client_id"] = request.client_id == _configuration["ClientSettings:ClientId"] ? request.client_id : "";
             TempData["redirect_uri"] = request.redirect_uri == _configuration["ClientSettings:RedirectUri"] ? request.redirect_uri : "";
@@ -84,6 +84,13 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
             return BadRequest(new { error = "invalid_sign_in" });
         }
 
+        [HttpGet("is-signed-in")]
+        [Authorize]
+        public async Task<IActionResult> IsSignedIn()
+        {
+            return Ok();
+        }
+
         [HttpPost("oauth/token")]
         public async Task<IActionResult> Token([FromForm] TokenRequest request)
         {
@@ -94,6 +101,72 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
             }
 
             return Ok(tokenResponse);
+        }
+
+        [HttpPost("oauth/revoke")]
+        [Authorize]
+        public async Task<IActionResult> Revoke([FromForm] string accessToken, [FromForm] string refreshToken)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var result = await _authService.SignOut(user, accessToken, refreshToken);
+            if (!result)
+            {
+                return BadRequest(new { error = "invalid_token" });
+            }
+
+            return Ok();
+        }
+
+        [HttpPost("oauth/revoke-all")]
+        [Authorize]
+        public async Task<IActionResult> Revoke()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var result = await _authService.SignOutFromAllDevices(user);
+            if (!result)
+            {
+                return BadRequest(new { error = "invalid_token" });
+            }
+
+            return Ok();
+        }
+
+        [HttpPost("oauth/refresh")]
+        public async Task<IActionResult> Refresh([FromForm] RefreshRequest refreshRequest)
+        {
+            if(refreshRequest.grant_type != "refresh_token")
+            {
+                return BadRequest(new { error = "unsupported_grant_type" });
+            }
+
+            if(refreshRequest.scope != _configuration["ClientSettings:Scope"])
+            {
+                return BadRequest(new { error = "invalid_scope" });
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var result = await _authService.RefreshAccessToken(refreshRequest);
+            if (result == null)
+            {
+                return BadRequest(new { error = "invalid_token" });
+            }
+
+            return Ok(result);
         }
     }
 }

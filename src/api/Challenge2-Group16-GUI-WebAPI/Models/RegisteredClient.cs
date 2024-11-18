@@ -34,14 +34,14 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         public List<pHData> pHData { get; set; }
         public List<StirringData> StirringData { get; set; }
         public List<DeviceStatusData> DeviceStatusData { get; set; }
-        public List<ErrorData> ErrorData { get; set; }
+        public List<LogData> ErrorData { get; set; }
 
         // Cold Storage (entries are aggregated into daily entries)
         public List<TempAggregateData> TempAggregateData { get; set; }
         public List<pHAggregateData> pHAggregateData { get; set; }
         public List<StirringAggregateData> StirringAggregateDatas { get; set; }
         public List<DeviceStatusAggregateData> deviceStatusAggregateDatas { get; set; }
-        public List<ErrorAggregateData> ErrorAggregateDatas { get; set; }
+        public List<LogAggregateData> ErrorAggregateDatas { get; set; }
 
 
         public RegisteredClient()

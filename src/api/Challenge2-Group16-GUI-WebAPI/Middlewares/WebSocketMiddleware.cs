@@ -32,6 +32,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
                 {
                     Console.WriteLine("Not a WebSocket request");
                     httpContext.Response.StatusCode = 400;
+                    return;
                 }
             }
             else

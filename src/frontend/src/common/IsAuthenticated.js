@@ -1,18 +1,39 @@
-    // auth.js or similar file
+import { TryRefreshAccessToken } from "./apiClient";
+
+
+const api = 'https://localhost:443';
+
 export async function isAuthenticated() 
 {
-    try {
-        const accessToken = localStorage.getItem("access_token")
-        const refreshToken = localStorage.getItem("refresh_token")
-        
-        if(!refreshToken || refreshToken.trim() === "" || !accessToken || accessToken.trim() === "")
-        {
-            return false;
-        }
-
-        return true;
-    } catch (error) {
-        console.error("Failed to check auth status", error);
+    
+    const accessToken = localStorage.getItem("accessToken")
+    const refreshToken = localStorage.getItem("refreshToken")
+    if(!refreshToken.trim())
+    {
         return false;
     }
+
+    if(!accessToken.trim())
+    {
+        const {accessToken: accessToken1} = await TryRefreshAccessToken();
+        accessToken = accessToken1;
+    }
+
+    try {
+        const response = await fetch(`${api}/auth/is-signed-in`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        // Return based on the status code
+        if (response.ok) {
+            return true;
+        }
+    } catch (error) {
+        console.error("Authentication check failed:", error);
+    }
+
+    return false;
 }
