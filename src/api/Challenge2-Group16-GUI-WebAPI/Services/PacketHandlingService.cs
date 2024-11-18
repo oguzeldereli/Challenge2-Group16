@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Query.Internal;
 using NuGet.Packaging;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 namespace Challenge2_Group16_GUI_WebAPI.Services
@@ -15,17 +16,20 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         private readonly DataService _dataService;
         private readonly PacketService _packetService;
         private readonly IConfiguration _configuration;
+        private readonly SseClientService _sseClientService;
 
         public readonly ConcurrentDictionary<byte[], DataPacketModel> ExpectedAcks = new();
 
         public PacketHandlingService(
             DataService dataService,
             PacketService packetService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            SseClientService sseClientService)
         {
             _dataService = dataService;
             _packetService = packetService;
             _configuration = configuration;
+            _sseClientService = sseClientService;
         }
 
         public DataPacketModel MalformedPacketResponse()
@@ -497,6 +501,16 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                 Temperature = temperature
                             };
 
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = client.Identifier,
+                                data = new
+                                {
+                                    data_type = "temperature",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    data = temperature
+                                }
+                            });
                             await _dataService.StoreDataToDbAsync<TempData>(client, tempData);
                         }
                     }
@@ -515,6 +529,16 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                 RPM = rpm
                             };
 
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = client.Identifier,
+                                data = new
+                                {
+                                    data_type = "rpm",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    data = rpm
+                                }
+                            });
                             await _dataService.StoreDataToDbAsync<StirringData>(client, rpmData);
                         }
 
@@ -534,6 +558,16 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                 pH = ph
                             };
 
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = client.Identifier,
+                                data = new
+                                {
+                                    data_type = "ph",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    data = ph
+                                }
+                            });
                             await _dataService.StoreDataToDbAsync<pHData>(client, phData);
                         }
                     }
@@ -552,6 +586,16 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                 Status = status
                             };
 
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = client.Identifier,
+                                data = new
+                                {
+                                    data_type = "status",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    data = status
+                                }
+                            });
                             await _dataService.StoreDataToDbAsync<DeviceStatusData>(client, statusData);
                         }
                     }
@@ -579,6 +623,17 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                 Message = message
                             };
 
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = client.Identifier,
+                                data = new
+                                {
+                                    data_type = "log",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    log_level = type,
+                                    log_message = message
+                                }
+                            });
                             await _dataService.StoreDataToDbAsync<LogData>(client, logData);
                         }
                     }
@@ -606,7 +661,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task<DataPacketModel?> HandleAckAsync(DataPacketModel packet)
         {
-            if(packet.PacketIdentifier == null || packet.PacketIdentifier.Length != 16)
+            if (packet.PacketIdentifier == null || packet.PacketIdentifier.Length != 16)
             {
                 return InvalidPacketResponse();
             }
@@ -653,6 +708,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task<DataPacketModel?> HandleErrorAsync(RegisteredClient client, PacketError error, byte[] data, DataPacketModel packet)
         {
+            await _sseClientService.PublishAsJsonAsync("error", new { client_id = client.Identifier, error = error }); // publish the error
             return AckResponse(packet.PacketIdentifier); // just ack the error for now
         }
     }
