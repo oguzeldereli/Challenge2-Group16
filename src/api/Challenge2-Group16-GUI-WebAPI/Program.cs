@@ -76,7 +76,10 @@ public class Program
                 };
             });
 
-        // Add custom service
+        // Singleton Services
+        builder.Services.AddSingleton<SseClientService>();
+
+        // Scoped Services
         builder.Services.AddScoped<PacketService>();
         builder.Services.AddScoped<RegisteredClientService>();
         builder.Services.AddScoped<DataService>();

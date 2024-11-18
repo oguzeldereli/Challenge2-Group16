@@ -1,4 +1,2 @@
 ﻿
-Rename Error to Log with logging levels
-start with controllers
 Write Data Aggregation

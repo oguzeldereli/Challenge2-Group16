@@ -90,7 +90,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 }
 
                 var dataPacketModel = _packetHandlingService.RegisterResponse(registerResult, registerResult.Secret, registerResult.SignatureKey, registerResult.EncryptionKey, registerResult.EncryptionIV);
-                
+
                 return dataPacketModel;
             }
 
@@ -131,7 +131,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 _sockets.TryAdd(socketId, temporaryAuthToken);
                 return dataPacketModel;
             }
-            
+
             return _packetHandlingService.InvalidPacketResponse();
         }
 
@@ -286,7 +286,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         {
             var socketId = Guid.NewGuid().ToString();
             _webSocketManagerService.AddSocket(socketId, socket);
-            
+
             WebSocketMessageType type;
 
             do
@@ -296,8 +296,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 if (packet == null)
                 {
                     DataPacketModel dataPacketModel = _packetHandlingService.MalformedPacketResponse();
-
                     await _webSocketManagerService.SendAsync(socket, dataPacketModel.GetPacket());
+
                     continue;
                 }
 
