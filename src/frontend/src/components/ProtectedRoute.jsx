@@ -27,7 +27,7 @@ const ProtectedRoute = () => {
         const state = generateState();
         generateCodeChallenge(verifier).then(code_challenge => {
             // Store verifier and state in local storage
-            localStorage.setItem('pkce_code_verifier', verifier);
+            localStorage.setItem('pkceCodeVerifier', verifier);
             localStorage.setItem('state', state);
             
             // Set the window location after code_challenge is ready

@@ -117,7 +117,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         public async Task<TokenResponse> RefreshAccessToken(RefreshRequest request)
         {
             var refreshRelatedToken = await _dbContext.RefreshTokens.Include(x => x.User)
-                .Where(rt => rt.Token == request.RefreshToken && !rt.IsExpired && !rt.IsRevoked)
+                .Where(rt => rt.Token == request.refresh_token && !rt.IsExpired && !rt.IsRevoked)
                 .FirstOrDefaultAsync();
             if (refreshRelatedToken == null)
             {
@@ -162,14 +162,21 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             };
         }
 
-        public async Task SignOutFromAllDevices(AppUser User)
+        public async Task<bool> SignOutFromAllDevices(AppUser User)
         {
+            if (!_dbContext.Users.Any(x => x.Id == User.Id))
+            {
+                return false;
+            }
+
             _dbContext.Entry(User).Reference(u => u.RefreshTokens).Load();
             User.RefreshTokens.ForEach(rt => rt.IsRevoked = true);
             await _dbContext.SaveChangesAsync();
+
+            return true;
         }
 
-        public async Task<bool> SignOut(AppUser User, string accessToken)
+        public async Task<bool> SignOut(AppUser User, string accessToken, string refreshToken)
         {
             // validate the access token claims by comparing to the user, if accessToken is valid, add access token to access token blacklist
             // refresh tokens stay
@@ -178,8 +185,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             var token = tokenHandler.ReadJwtToken(accessToken);
             var userName = token.Claims.First(claim => claim.Type == JwtRegisteredClaimNames.Sub).Value;
             var userId = token.Claims.First(claim => claim.Type == ClaimTypes.NameIdentifier).Value;
-
-            if (userId != User.Id || userName != User.UserName)
+            var user = await _userManager.FindByIdAsync(userId);
+            if (userId != User.Id || userName != User.UserName || user == null)
             {
                 return false;
             }
@@ -189,7 +196,14 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 AccessToken = accessToken
             };
 
+            var rToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == refreshToken);
+            if(rToken == null)
+            {
+                return false;
+            }
+
             _dbContext.AccessTokenBlacklist.Add(tokenBlacklist);
+            user.RefreshTokens.Remove(rToken);
             await _dbContext.SaveChangesAsync();
             return true;
         }
@@ -222,7 +236,10 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             };
 

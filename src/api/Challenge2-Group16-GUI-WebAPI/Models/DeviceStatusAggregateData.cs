@@ -11,7 +11,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         public string ClientId { get; set; }
         public DateTime TimeStamp { get; set; }
         public byte[] DataTimeStamps { get; set; } // read by 8 bytes at a time
-        public string Status { get; set; } // separated by semicolons
+        public byte[] StatusAggregate { get; set; } // separated by semicolons
 
         public DeviceStatusAggregateData()
         {

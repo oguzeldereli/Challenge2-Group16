@@ -31,7 +31,7 @@ public class Program
             options.AddPolicy(name: MyAllowSpecificOrigins,
                 policy =>
                 {
-                    policy.WithOrigins("http://localhost:5173");
+                    policy.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod();
                 });
         });
 
@@ -56,7 +56,12 @@ public class Program
         builder.Services.AddIdentity<AppUser, IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
-        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
             .AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -65,9 +70,9 @@ public class Program
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                    ValidAudience = builder.Configuration["Jwt:Issuer"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+                    ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+                    ValidAudience = builder.Configuration["JwtSettings:Issuer"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]))
                 };
             });
 
@@ -76,8 +81,10 @@ public class Program
         builder.Services.AddScoped<RegisteredClientService>();
         builder.Services.AddScoped<DataService>();
         builder.Services.AddScoped<PacketHandlingService>();
+        builder.Services.AddScoped<PacketManagingService>();
         builder.Services.AddScoped<WebSocketManagerService>();
         builder.Services.AddScoped<WebSocketHandlerService>();
+        builder.Services.AddScoped<DeviceService>();
         builder.Services.AddScoped<AuthService>();
 
         builder.Host.UseSerilog();

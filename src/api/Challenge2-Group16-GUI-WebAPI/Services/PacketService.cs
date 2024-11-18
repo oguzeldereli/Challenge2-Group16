@@ -48,7 +48,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             var sign = hmac.ComputeHash(packet.GetPacketContent());
 
             // compare them
-            return packet.PacketSign.SequenceEqual(sign);
+            return packet.PacketSignature.SequenceEqual(sign);
         }
 
         public byte[]? SignPacket(DataPacketModel packet, byte[] key)
@@ -65,8 +65,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         public bool ValidatePacket(DataPacketModel packet)
         {
             return IsPacketValid(packet) && 
-                (IsAuthRelatedPacket(packet) || IsPacketAuthorized(packet) &&
-                (IsRegisterPacket(packet) || IsPacketSignatureValid(packet)));
+                (IsAuthRelatedPacket(packet) || IsPacketAuthorized(packet)) &&
+                (IsRegisterPacket(packet) || IsPacketSignatureValid(packet));
         }
 
         public byte[]? GetDecryptedData(DataPacketModel packet)
@@ -106,10 +106,10 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 return null;
             }
 
-            var signature = packet.PacketSign;
+            var signature = packet.PacketSignature;
             if (packet.PacketEncryptionMethod == (uint)PacketEncryptionMethod.AES)
             {
-                signature = Decrypt(packet.PacketSign, registeredClient.EncryptionKey, registeredClient.EncryptionIV);
+                signature = Decrypt(packet.PacketSignature, registeredClient.EncryptionKey, registeredClient.EncryptionIV);
             }
 
             return signature;
