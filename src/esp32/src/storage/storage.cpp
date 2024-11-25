@@ -59,9 +59,9 @@ void set_preferences(preferences_t *prefs)
 preferences_t last_preferences;
 preferences_t *get_preferences()
 {
-    read_bytes_to("identifier", &last_preferences.identifier, 32);
-    read_bytes_to("secret", &last_preferences.secret, 32);
-    read_bytes_to("signature", &last_preferences.signatureKey, 32);
+    read_bytes_to("identifier", last_preferences.identifier, 32);
+    read_bytes_to("secret", last_preferences.secret, 32);
+    read_bytes_to("signature", last_preferences.signatureKey, 32);
 
     return &last_preferences;
 }

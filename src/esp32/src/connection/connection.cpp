@@ -4,7 +4,23 @@
 #include "esp_eap_client.h"
 #include "./connection.h"
 
-void wifi_begin_enterprise(char *ssid, char *user, char *pass)
+bool wifi_wait()
+{
+    int max_attempts = 30;
+    while (WiFi.status() != WL_CONNECTED && max_attempts > 0) {
+        delay(500);
+        max_attempts--;
+    }
+
+    if(WiFi.status() == WL_CONNECTED)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool wifi_begin_enterprise(char *ssid, char *user, char *pass)
 {
     WiFi.mode(WIFI_STA);
     esp_eap_client_set_identity((uint8_t *)user, strlen(user));
@@ -12,14 +28,19 @@ void wifi_begin_enterprise(char *ssid, char *user, char *pass)
     esp_eap_client_set_password((uint8_t *)pass, strlen(pass));
     esp_wifi_sta_enterprise_enable();
     WiFi.begin(ssid);
+
+    return wifi_wait();
 }
 
-void wifi_begin(char *ssid, char *pass)
+bool wifi_begin(char *ssid, char *pass)
 {
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, pass);
+
+    return wifi_wait();
 }
 
+WebSocketsClient webSocket;
 void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
 {
     switch (type)
@@ -56,14 +77,13 @@ void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     }
 }
 
-WebSocketsClient webSocket;
 void websocket_begin()
 {
-    webSocket.begin(websocket_server);
+    webSocket.begin(WEBSOCKET_SERVER, 443, "/ws");
     webSocket.onEvent(onWebSocketEvent);
 }
 
-void websocket_write_bin(char *data, uint16_t length)
+void websocket_write_bin(uint8_t *data, uint16_t length)
 {
     webSocket.sendBIN(data, length);
 }

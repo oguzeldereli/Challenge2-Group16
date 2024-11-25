@@ -2,6 +2,7 @@
 #define __STORAGE_H__
 
 #include <cstdint>
+#include <cstdlib>
 
 void store_bytes(const char *key, void *bytes, size_t length);
 uint8_t *get_read_buffer();
@@ -11,9 +12,9 @@ void clear_storage();
 
 typedef struct
 {
-    char identifier[32];
-    char secret[32];
-    char signatureKey[32];
+    uint8_t identifier[32];
+    uint8_t secret[32];
+    uint8_t signatureKey[32];
 } preferences_t;
 
 void set_preferences(preferences_t *prefs);
