@@ -36,17 +36,10 @@ void i2c_on_receive(int length)
     }
 }
 
-void i2c_on_request()
-{
-    Wire.write(0x31);
-}
-
-
 void i2c_init_listener()
 {
     Wire.begin(ESP32_I2C_ADDRESS);
     Wire.onReceive(i2c_on_receive);
-    Wire.onRequest(i2c_on_request);
 }
 
 void i2c_write(uint8_t *data, uint16_t length)
@@ -54,4 +47,9 @@ void i2c_write(uint8_t *data, uint16_t length)
     Wire.beginTransmission(ARDUINO_I2C_ADDRESS);
     Wire.write(data, length);
     Wire.endTransmission();
+}
+
+void i2c_request(uint16_t length)
+{
+    Wire.requestFrom(ARDUINO_I2C_ADDRESS, length);
 }
