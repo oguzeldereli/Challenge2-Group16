@@ -38,9 +38,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             byte flag = 0b00011000; // binary command data
             byte[] data = { flag, 0xff }; // start command 0xff
 
-            var encryptedData = PacketService.Encrypt(data, client.EncryptionKey, client.EncryptionIV);
-
-            var packet = DataPacketModel.Data(encryptedData);
+            var packet = DataPacketModel.Data(data);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {
@@ -59,9 +57,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             byte flag = 0b00011000; // binary command data
             byte[] data = { flag, 0x00 }; // stop command 0x00
 
-            var encryptedData = PacketService.Encrypt(data, client.EncryptionKey, client.EncryptionIV);
-
-            var packet = DataPacketModel.Data(encryptedData);
+            var packet = DataPacketModel.Data(data);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {
@@ -87,9 +83,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             byte[] fulldata = { flag, 0x01, dataType }; // set target command 0x01
             fulldata = fulldata.Concat(data).ToArray();
 
-            var encryptedData = PacketService.Encrypt(fulldata, client.EncryptionKey, client.EncryptionIV);
-
-            var packet = DataPacketModel.Data(encryptedData);
+            var packet = DataPacketModel.Data(fulldata);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {
@@ -108,9 +102,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             byte flag = 0b00011000; // binary command data
             byte[] fulldata = { flag, 0x02 }; // get status command 0x02
 
-            var encryptedData = PacketService.Encrypt(fulldata, client.EncryptionKey, client.EncryptionIV);
-
-            var packet = DataPacketModel.Data(encryptedData);
+            var packet = DataPacketModel.Data(fulldata);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {

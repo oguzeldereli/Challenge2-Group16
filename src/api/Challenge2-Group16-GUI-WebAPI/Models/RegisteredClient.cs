@@ -31,10 +31,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         // Packet Signature Key
         public byte[] SignatureKey { get; set; }
 
-        // Data Encryption Key and IV
-        public byte[] EncryptionKey { get; set; }
-        public byte[] EncryptionIV { get; set; }
-
         // Raw Data (each entry is kept for 1 day)
         public List<TempData> TempData { get; set; }
         public List<pHData> pHData { get; set; }
@@ -52,12 +48,10 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         public RegisteredClient()
         {
             Id = Guid.NewGuid().ToString();
-            Identifier = new byte[16];
-            TemporaryAuthToken = new byte[16];
+            Identifier = new byte[32];
             Secret = new byte[32];
             SignatureKey = new byte[32];
-            EncryptionKey = new byte[32];
-            EncryptionIV = new byte[16];
+            TemporaryAuthToken = new byte[16];
         }
 
         public static RegisteredClient? Create(byte[] identifier, ClientType type)
@@ -72,8 +66,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             client.Type = type;
             RandomNumberGenerator.Fill(client.Secret);
             RandomNumberGenerator.Fill(client.SignatureKey);
-            RandomNumberGenerator.Fill(client.EncryptionKey);
-            RandomNumberGenerator.Fill(client.EncryptionIV);
             Array.Clear(client.TemporaryAuthToken, 0, client.TemporaryAuthToken.Length); // make sure auth token is empty
 
             return client;

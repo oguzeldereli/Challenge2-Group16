@@ -39,9 +39,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         public byte[] AuthorizationToken { get; set; } // 16 bytes
         public uint PacketType { get; set; } // 4 bytes
         public uint PacketError { get; set; } // 4 bytes
-        public uint PacketEncryptionMethod { get; set; } // 4 bytes
         public uint DataSize { get; set; } // 4 bytes
-        public byte[] EncryptedData { get; set; } // DataSize bytes
+        public byte[] PacketData { get; set; } // DataSize bytes
         public byte[] PacketSignature { get; set; } // 32 bytes
             
         public DataPacketModel()
@@ -57,7 +56,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         public static DataPacketModel? Create(byte[] packet)
         {
             // Minimum packet size: 96 bytes (fixed fields)
-            if (packet.Length < 96)
+            if (packet.Length < 92)
             {
                 Console.WriteLine("Packet length is less than the minimum required size of 100 bytes.");
                 return null;
@@ -85,29 +84,26 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
                 // 6. Extract PacketError (bytes 52-55)
                 createdPacket.PacketError = BitConverter.ToUInt32(packet, 52);
 
-                // 7. Extract PacketEncryptionMethod (bytes 56-59)
-                createdPacket.PacketEncryptionMethod = BitConverter.ToUInt32(packet, 56);
-
                 // 8. Extract DataSize (bytes 60-63)
-                createdPacket.DataSize = BitConverter.ToUInt32(packet, 60);
+                createdPacket.DataSize = BitConverter.ToUInt32(packet, 56);
 
                 // Validate that the packet contains enough bytes for Data and PacketSign
-                uint requiredLength = 96 + createdPacket.DataSize; // 68 bytes before Data, DataSize, 32 bytes for PacketSign
+                uint requiredLength = 92 + createdPacket.DataSize; // 60 bytes before Data, DataSize, 32 bytes for PacketSign
                 if (packet.Length < requiredLength)
                 {
                     return null;
                 }
 
-                // 9. Extract Data (bytes 68 to 68 + DataSize -1)
+                // 9. Extract Data (bytes 60 to 60 + DataSize -1)
                 if (createdPacket.DataSize > int.MaxValue)
                 {
                     return null;
                 }
 
-                createdPacket.EncryptedData = packet[64..(64 + (int)createdPacket.DataSize)];
+                createdPacket.PacketData = packet[60..(60 + (int)createdPacket.DataSize)];
 
                 // 10. Extract PacketSign (last 32 bytes)
-                createdPacket.PacketSignature = packet[(64 + (int)createdPacket.DataSize)..(96 + (int)createdPacket.DataSize)];
+                createdPacket.PacketSignature = packet[(640 + (int)createdPacket.DataSize)..(92 + (int)createdPacket.DataSize)];
             }
             catch (ArgumentOutOfRangeException ex)
             {
@@ -127,9 +123,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
             dataPacketModel.PacketType = (uint)Models.PacketType.Error;
             dataPacketModel.PacketError = (uint)Models.PacketError.MalformedPacket;
-            dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.None;
             dataPacketModel.DataSize = 0;
-            dataPacketModel.EncryptedData = new byte[0];
+            dataPacketModel.PacketData = new byte[0];
             dataPacketModel.PacketSignature = new byte[32];
             return dataPacketModel;
         }
@@ -143,9 +138,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
             dataPacketModel.PacketType = (uint)Models.PacketType.Error;
             dataPacketModel.PacketError = (uint)Models.PacketError.InvalidPacket;
-            dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.None;
             dataPacketModel.DataSize = 0;
-            dataPacketModel.EncryptedData = new byte[0];
+            dataPacketModel.PacketData = new byte[0];
             dataPacketModel.PacketSignature = new byte[32];
             return dataPacketModel;
         }
@@ -159,14 +153,13 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
             dataPacketModel.PacketType = (uint)Models.PacketType.Error;
             dataPacketModel.PacketError = (uint)Models.PacketError.InternalError;
-            dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.None;
             dataPacketModel.DataSize = 0;
-            dataPacketModel.EncryptedData = new byte[0];
+            dataPacketModel.PacketData = new byte[0];
             dataPacketModel.PacketSignature = new byte[32];
             return dataPacketModel;
         }
 
-        public static DataPacketModel RegisterResponse(byte[] secret, byte[] signatureKey, byte[] encryptionKey, byte[] encryptionIv)
+        public static DataPacketModel RegisterResponse(byte[] secret, byte[] signatureKey)
         {
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = DataPacketModel.ValidSignature;
@@ -175,17 +168,14 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
             dataPacketModel.PacketType = (uint)Models.PacketType.Register;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
-            dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.None;
-            dataPacketModel.DataSize = 112;
-            dataPacketModel.EncryptedData = CombineByteArrays(
+            dataPacketModel.DataSize = 64;
+            dataPacketModel.PacketData = CombineByteArrays(
                 secret,
-                signatureKey,
-                encryptionKey,
-                encryptionIv);
+                signatureKey);
             return dataPacketModel;
         }
 
-        public static DataPacketModel AuthResponse(byte[] encryptedAuthToken)
+        public static DataPacketModel AuthResponse(byte[] authToken)
         {
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = DataPacketModel.ValidSignature;
@@ -194,9 +184,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; ;
             dataPacketModel.PacketType = (uint)Models.PacketType.Auth;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
-            dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.AES;
             dataPacketModel.DataSize = 16;
-            dataPacketModel.EncryptedData = encryptedAuthToken;
+            dataPacketModel.PacketData = authToken;
             return dataPacketModel;
         }
 
@@ -209,13 +198,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; ;
             dataPacketModel.PacketType = (uint)Models.PacketType.RevokeAuth;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
-            dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.AES;
             dataPacketModel.DataSize = 0;
-            dataPacketModel.EncryptedData = new byte[0];
+            dataPacketModel.PacketData = new byte[0];
             return dataPacketModel;
         }
 
-        public static DataPacketModel Data(byte[] encryptedData)
+        public static DataPacketModel Data(byte[] data)
         {
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = DataPacketModel.ValidSignature;
@@ -224,9 +212,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; ;
             dataPacketModel.PacketType = (uint)Models.PacketType.Data;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
-            dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.AES;
-            dataPacketModel.DataSize = (uint)encryptedData.Length;
-            dataPacketModel.EncryptedData = encryptedData;
+            dataPacketModel.DataSize = (uint)data.Length;
+            dataPacketModel.PacketData = data;
             return dataPacketModel;
         }
 
@@ -239,9 +226,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; ;
             dataPacketModel.PacketType = (uint)Models.PacketType.Ack;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
-            dataPacketModel.PacketEncryptionMethod = (uint)Models.PacketEncryptionMethod.None;
             dataPacketModel.DataSize = 0;
-            dataPacketModel.EncryptedData = new byte[0];
+            dataPacketModel.PacketData = new byte[0];
             return dataPacketModel;
         }
 
@@ -253,9 +239,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
                     AuthorizationToken,
                     BitConverter.GetBytes(PacketType),
                     BitConverter.GetBytes(PacketError),
-                    BitConverter.GetBytes(PacketEncryptionMethod),
                     BitConverter.GetBytes(DataSize),
-                    EncryptedData,
+                    PacketData,
                     PacketSignature
                 );
         }
@@ -269,9 +254,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
                     AuthorizationToken,
                     BitConverter.GetBytes(PacketType),
                     BitConverter.GetBytes(PacketError),
-                    BitConverter.GetBytes(PacketEncryptionMethod),
                     BitConverter.GetBytes(DataSize),
-                    EncryptedData
+                    PacketData
                 );
         }
 
