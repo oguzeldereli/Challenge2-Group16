@@ -59,9 +59,9 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public async Task RegisterResponse(string socketId, RegisteredClient client, byte[] secret, byte[] signatureKey, byte[] encryptionKey, byte[] encryptionIv)
+        public async Task RegisterResponse(string socketId, RegisteredClient client, byte[] secret, byte[] signatureKey)
         {
-            var packet = DataPacketModel.RegisterResponse(secret, signatureKey, encryptionKey, encryptionIv);
+            var packet = DataPacketModel.RegisterResponse(secret, signatureKey);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {
@@ -75,9 +75,9 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public async Task AuthResponse(string socketId, RegisteredClient client, byte[] encryptedAuthToken)
+        public async Task AuthResponse(string socketId, RegisteredClient client, byte[] authToken)
         {
-            var packet = DataPacketModel.AuthResponse(encryptedAuthToken);
+            var packet = DataPacketModel.AuthResponse(authToken);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {
@@ -106,9 +106,9 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public async Task DataReturnResponse(string socketId, RegisteredClient client, byte[] encryptedData)
+        public async Task DataReturnResponse(string socketId, RegisteredClient client, byte[] data)
         {
-            var packet = DataPacketModel.Data(encryptedData);
+            var packet = DataPacketModel.Data(data);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {
@@ -512,8 +512,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     return;
                 }
 
-                var encryptedDataBytes = PacketService.Encrypt(dataBytes, client.EncryptionKey, client.EncryptionIV);
-                await DataReturnResponse(socketId, client, encryptedDataBytes);
+                await DataReturnResponse(socketId, client, dataBytes);
             }
             else if (command == 1)
             {
