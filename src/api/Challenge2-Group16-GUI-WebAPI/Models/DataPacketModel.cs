@@ -35,7 +35,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
 
         public byte[] Signature { get; set; } // 8 bytes
         public ulong SentAt { get; set; } // 8 bytes
-        public byte[] PacketIdentifier { get; set; } // 16 bytes
+        public byte[] ChainIdentifier { get; set; } // 16 bytes
         public byte[] AuthorizationToken { get; set; } // 16 bytes
         public uint PacketType { get; set; } // 4 bytes
         public uint PacketError { get; set; } // 4 bytes
@@ -48,7 +48,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         {
             Signature = new byte[8];
             SentAt = 0;
-            PacketIdentifier = new byte[16];
+            ChainIdentifier = new byte[16];
             AuthorizationToken = new byte[16];
             DataSize = 0;
             PacketSignature = new byte[32];
@@ -74,7 +74,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
                 createdPacket.SentAt = BitConverter.ToUInt64(packet, 8);
 
                 // 3. Extract PacketIdentifier (bytes 16-31)
-                createdPacket.PacketIdentifier = packet[16..32];
+                createdPacket.ChainIdentifier = packet[16..32];
 
                 // 4. Extract AuthorizationToken (bytes 32-47)
                 createdPacket.AuthorizationToken = packet[32..48];
@@ -123,7 +123,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = ValidSignature;
             dataPacketModel.SentAt = (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            dataPacketModel.PacketIdentifier = Guid.NewGuid().ToByteArray();
+            dataPacketModel.ChainIdentifier = Guid.NewGuid().ToByteArray();
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
             dataPacketModel.PacketType = (uint)Models.PacketType.Error;
             dataPacketModel.PacketError = (uint)Models.PacketError.MalformedPacket;
@@ -139,7 +139,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = ValidSignature;
             dataPacketModel.SentAt = (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            dataPacketModel.PacketIdentifier = Guid.NewGuid().ToByteArray();
+            dataPacketModel.ChainIdentifier = Guid.NewGuid().ToByteArray();
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
             dataPacketModel.PacketType = (uint)Models.PacketType.Error;
             dataPacketModel.PacketError = (uint)Models.PacketError.InvalidPacket;
@@ -155,7 +155,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = ValidSignature;
             dataPacketModel.SentAt = (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            dataPacketModel.PacketIdentifier = Guid.NewGuid().ToByteArray();
+            dataPacketModel.ChainIdentifier = Guid.NewGuid().ToByteArray();
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
             dataPacketModel.PacketType = (uint)Models.PacketType.Error;
             dataPacketModel.PacketError = (uint)Models.PacketError.InternalError;
@@ -171,7 +171,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = DataPacketModel.ValidSignature;
             dataPacketModel.SentAt = (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            dataPacketModel.PacketIdentifier = Guid.NewGuid().ToByteArray();
+            dataPacketModel.ChainIdentifier = Guid.NewGuid().ToByteArray();
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
             dataPacketModel.PacketType = (uint)Models.PacketType.Register;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
@@ -190,7 +190,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = DataPacketModel.ValidSignature;
             dataPacketModel.SentAt = (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            dataPacketModel.PacketIdentifier = Guid.NewGuid().ToByteArray();
+            dataPacketModel.ChainIdentifier = Guid.NewGuid().ToByteArray();
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; ;
             dataPacketModel.PacketType = (uint)Models.PacketType.Auth;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
@@ -205,7 +205,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = DataPacketModel.ValidSignature;
             dataPacketModel.SentAt = (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            dataPacketModel.PacketIdentifier = Guid.NewGuid().ToByteArray();
+            dataPacketModel.ChainIdentifier = Guid.NewGuid().ToByteArray();
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; ;
             dataPacketModel.PacketType = (uint)Models.PacketType.RevokeAuth;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
@@ -220,7 +220,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = DataPacketModel.ValidSignature;
             dataPacketModel.SentAt = (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            dataPacketModel.PacketIdentifier = Guid.NewGuid().ToByteArray();
+            dataPacketModel.ChainIdentifier = Guid.NewGuid().ToByteArray();
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; ;
             dataPacketModel.PacketType = (uint)Models.PacketType.Data;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
@@ -235,7 +235,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             var dataPacketModel = new DataPacketModel();
             dataPacketModel.Signature = DataPacketModel.ValidSignature;
             dataPacketModel.SentAt = (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            dataPacketModel.PacketIdentifier = packetId;
+            dataPacketModel.ChainIdentifier = packetId;
             dataPacketModel.AuthorizationToken = new byte[16] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; ;
             dataPacketModel.PacketType = (uint)Models.PacketType.Ack;
             dataPacketModel.PacketError = (uint)Models.PacketError.None;
@@ -249,7 +249,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             return CombineByteArrays(
                     Signature,
                     BitConverter.GetBytes(SentAt),
-                    PacketIdentifier,
+                    ChainIdentifier,
                     AuthorizationToken,
                     BitConverter.GetBytes(PacketType),
                     BitConverter.GetBytes(PacketError),
@@ -265,7 +265,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
             return CombineByteArrays(
                     Signature,
                     BitConverter.GetBytes(SentAt),
-                    PacketIdentifier,
+                    ChainIdentifier,
                     AuthorizationToken,
                     BitConverter.GetBytes(PacketType),
                     BitConverter.GetBytes(PacketError),
