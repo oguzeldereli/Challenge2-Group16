@@ -1,4 +1,5 @@
 #include <WiFi.h>
+#include <esp_wifi.h>
 #include <WebSocketsClient.h>
 #include "esp_eap_client.h"
 #include "./connection.h"
@@ -70,4 +71,18 @@ void websocket_write_bin(char *data, uint16_t length)
 void websocket_keepalive()
 {
     webSocket.loop();
+}
+
+uint8_t baseMac[6];
+uint8_t *get_mac_address()
+{
+    esp_err_t ret = esp_wifi_get_mac(WIFI_IF_STA, baseMac);
+    if (ret == ESP_OK)
+    {
+        return baseMac;
+    }
+    else
+    {
+        return 0;
+    }
 }
