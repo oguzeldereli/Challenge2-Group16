@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
+export const apiBaseUrl = "https://localhost:443";
+
 const apiClient = axios.create({
     baseURL: 'https://localhost:443'
 });

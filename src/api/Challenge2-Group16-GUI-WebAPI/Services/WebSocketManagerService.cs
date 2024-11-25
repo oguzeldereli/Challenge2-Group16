@@ -1,5 +1,6 @@
 ﻿using Challenge2_Group16_GUI_WebAPI.Data;
 using Challenge2_Group16_GUI_WebAPI.Models;
+using Challenge2_Group16_GUI_WebAPI.Services;
 using Microsoft.AspNetCore.DataProtection;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
@@ -10,10 +11,14 @@ public class WebSocketManagerService
 {
     private readonly ApplicationDbContext _context;
     private readonly ConcurrentDictionary<string, (WebSocket, RegisteredClient?)> _sockets = new();
+    private readonly SseClientService _sseClientService;
 
-    public WebSocketManagerService(ApplicationDbContext context)
+    public WebSocketManagerService(
+        ApplicationDbContext context,
+        SseClientService sseClientService)
     {
         _context = context;
+        _sseClientService = sseClientService;
     }
 
     public void AddSocket(string id, WebSocket socket)
@@ -25,7 +30,12 @@ public class WebSocketManagerService
     {
         if (_sockets.TryRemove(id, out var pair))
         {
-            var (socket, _) = pair;
+            var (socket, client) = pair;
+            if (client != null)
+            {
+                await UnbindClient(client);
+            }
+
             await socket.CloseAsync(
                 WebSocketCloseStatus.NormalClosure,
                 "Connection closed by the server",
@@ -34,7 +44,7 @@ public class WebSocketManagerService
         }
     }
 
-    public void BindClient(string socketId, RegisteredClient client)
+    public async Task BindClient(string socketId, RegisteredClient client)
     {
         if (!_context.Users.Any(x => x.Id == client.Id))
         {
@@ -53,10 +63,16 @@ public class WebSocketManagerService
             return;
         }
 
+        await _sseClientService.PublishAsJsonAsync("device", new
+        {
+            client_id = client.Identifier,
+            action = "add"
+        });
+
         _sockets[key] = (socket, client);
     }
 
-    public void BindClient(WebSocket socket, RegisteredClient client)
+    public async Task BindClient(WebSocket socket, RegisteredClient client)
     {
         if(!_context.Users.Any(x => x.Id == client.Id))
         {
@@ -74,10 +90,16 @@ public class WebSocketManagerService
             return;
         }
 
+        await _sseClientService.PublishAsJsonAsync("device", new
+        {
+            client_id = client.Identifier,
+            action = "add"
+        });
+
         _sockets[key] = (socket, client);
     }
 
-    public void UnbindClient(RegisteredClient client)
+    public async Task UnbindClient(RegisteredClient client)
     {
         if (!_context.Users.Any(x => x.Id == client.Id))
         {
@@ -89,6 +111,12 @@ public class WebSocketManagerService
         {
             return;
         }
+
+        await _sseClientService.PublishAsJsonAsync("device", new
+        {
+            client_id = client.Identifier,
+            action = "remove"
+        });
 
         _sockets[key] = (_sockets[key].Item1, null);
     }
@@ -128,6 +156,11 @@ public class WebSocketManagerService
     public RegisteredClient? GetBoundClient(string id)
     {
         return _sockets.TryGetValue(id, out var pair) ? pair.Item2 : null;
+    }
+
+    public string? GetBoundSocket(RegisteredClient client)
+    {
+        return _sockets.FirstOrDefault(x => x.Value.Item2 == client).Key;
     }
 
     public List<RegisteredClient> GetAllBoundClients()

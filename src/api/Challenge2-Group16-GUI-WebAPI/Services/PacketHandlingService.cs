@@ -1,4 +1,5 @@
-﻿using Challenge2_Group16_GUI_WebAPI.Interfaces;
+﻿using Azure;
+using Challenge2_Group16_GUI_WebAPI.Interfaces;
 using Challenge2_Group16_GUI_WebAPI.Models;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
@@ -6,6 +7,8 @@ using Microsoft.EntityFrameworkCore.Query.Internal;
 using NuGet.Packaging;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 namespace Challenge2_Group16_GUI_WebAPI.Services
@@ -15,137 +18,149 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         private readonly DataService _dataService;
         private readonly PacketService _packetService;
         private readonly IConfiguration _configuration;
-
-        public readonly ConcurrentDictionary<byte[], DataPacketModel> ExpectedAcks = new();
+        private readonly SseClientService _sseClientService;
+        private readonly WebSocketManagerService _webSocketManagerService;
+        private readonly ChainService _chainService;
 
         public PacketHandlingService(
             DataService dataService,
             PacketService packetService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            SseClientService sseClientService,
+            WebSocketManagerService webSocketManagerService,
+            ChainService chainService)
         {
             _dataService = dataService;
             _packetService = packetService;
             _configuration = configuration;
+            _sseClientService = sseClientService;
+            _webSocketManagerService = webSocketManagerService;
+            _chainService = chainService;
         }
 
-        public DataPacketModel MalformedPacketResponse()
+        public async Task MalformedPacketResponse(string socketId)
         {
             var packet = DataPacketModel.MalformedPacket();
-            ExpectedAcks[packet.PacketIdentifier] = packet;
-            return packet;
+            await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
+            await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public DataPacketModel InvalidPacketResponse()
+        public async Task InvalidPacketResponse(string socketId)
         {
             var packet = DataPacketModel.InvalidPacket();
-            ExpectedAcks[packet.PacketIdentifier] = packet;
-            return packet;
+            await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
+            await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public DataPacketModel InternalErrorResponse()
+        public async Task InternalErrorResponse(string socketId)
         {
             var packet = DataPacketModel.InternalError();
-            ExpectedAcks[packet.PacketIdentifier] = packet;
-            return packet;
+            await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
+            await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public DataPacketModel RegisterResponse(RegisteredClient client, byte[] secret, byte[] signatureKey, byte[] encryptionKey, byte[] encryptionIv)
+        public async Task RegisterResponse(string socketId, RegisteredClient client, byte[] secret, byte[] signatureKey)
         {
-            var packet = DataPacketModel.RegisterResponse(secret, signatureKey, encryptionKey, encryptionIv);
+            var packet = DataPacketModel.RegisterResponse(secret, signatureKey);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {
-                return InternalErrorResponse();
+                await InternalErrorResponse(socketId);
+                return;
             }
 
             packet.PacketSignature = packetSignature;
-            ExpectedAcks[packet.PacketIdentifier] = packet;
 
-            return packet;
+            await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
+            await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public DataPacketModel AuthResponse(RegisteredClient client, byte[] encryptedAuthToken)
+        public async Task AuthResponse(string socketId, RegisteredClient client, byte[] authToken)
         {
-            var packet = DataPacketModel.AuthResponse(encryptedAuthToken);
+            var packet = DataPacketModel.AuthResponse(authToken);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {
-                return InternalErrorResponse();
+                await InternalErrorResponse(socketId);
+                return;
             }
 
             packet.PacketSignature = packetSignature;
-            ExpectedAcks[packet.PacketIdentifier] = packet;
-            return packet;
+
+            await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
+            await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public DataPacketModel RevokeAuthResponse(RegisteredClient client)
+        public async Task RevokeAuthResponse(string socketId, RegisteredClient client)
         {
             var packet = DataPacketModel.RevokeAuthResponse();
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {
-                return InternalErrorResponse();
+                await InternalErrorResponse(socketId);
+                return;
             }
 
             packet.PacketSignature = packetSignature;
-            ExpectedAcks[packet.PacketIdentifier] = packet;
-            return packet;
+            await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
+            await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public DataPacketModel DataReturnResponse(RegisteredClient client, byte[] encryptedData)
+        public async Task DataReturnResponse(string socketId, RegisteredClient client, byte[] data)
         {
-            var packet = DataPacketModel.Data(encryptedData);
+            var packet = DataPacketModel.Data(data);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
             if (packetSignature == null)
             {
-                return InternalErrorResponse();
+                await InternalErrorResponse(socketId);
+                return;
             }
 
             packet.PacketSignature = packetSignature;
-            ExpectedAcks[packet.PacketIdentifier] = packet;
-            return packet;
+            await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
+            await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public DataPacketModel AckResponse(byte[] packetIdentifier)
+        public async Task AckResponse(string socketId, byte[] packetIdentifier)
         {
             var packet = DataPacketModel.Ack(packetIdentifier);
-
-            return packet;
+            await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
+            await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
 
-        // For read
-        // packet has the following format
-        /*
-        char dataType;
-        char timeSetting;
-        char returnClosestInstead;
-        long TimeStamp1; // Unix Time in seconds
-        long TimeStamp2; // Unix Time in seconds
+            // For read
+            // packet has the following format
+            /*
+            char dataType;
+            char timeSetting;
+            char returnClosestInstead;
+            long TimeStamp1; // Unix Time in seconds
+            long TimeStamp2; // Unix Time in seconds
 
-        dataType: 
-        0 or Temp for Temperature
-        1 or Stir for Stirring RPM
-        2 or PH for PH
-        3 or DevS for Device Status
-        4 for Logs
+            dataType: 
+            0 or Temp for Temperature
+            1 or Stir for Stirring RPM
+            2 or PH for PH
+            3 or DevS for Device Status
+            4 for Logs
 
-        timeSetting:
-        0 for only return last entry
-        1 for specific timestamp
-        2 for range of timestamps
+            timeSetting:
+            0 for only return last entry
+            1 for specific timestamp
+            2 for range of timestamps
 
-        returnClosestInstead:
-        0 for return exact timestamp
-        1 for return closest timestamp
+            returnClosestInstead:
+            0 for return exact timestamp
+            1 for return closest timestamp
 
-        A read request causes a store response in return
-        */
+            A read request causes a store response in return
+            */
 
-        // For write
-        // packet has the following format
-        /*
-        char dataType;
+            // For write
+            // packet has the following format
+            /*
+            char dataType;
         long dataCount;
 
         dataType: 
@@ -153,7 +168,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         1 for Stirring RPM
         2 for PH
         3 for Device Status
-        4 for Logs
+        4 for Logs  
 
         dataCount:
         Amount of entries of data in Timestamp + data format.
@@ -167,7 +182,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
          */
 
 
-        public async Task<DataPacketModel?> HandleBinaryData(int command, RegisteredClient client, byte[] pureData, DataPacketModel packet)
+        public async Task HandleBinaryData(string socketId, int command, RegisteredClient client, byte[] pureData, DataPacketModel packet)
         {
             DataPacketModel? packetModel = null;
 
@@ -190,7 +205,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (data == null)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes = DataPacketModel.CombineByteArrays(
@@ -206,7 +222,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (data == null)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes = DataPacketModel.CombineByteArrays(
@@ -222,7 +239,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (data == null)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes = DataPacketModel.CombineByteArrays(
@@ -238,14 +256,18 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (data == null)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes = DataPacketModel.CombineByteArrays(
                             new byte[2] { dataFlag, dataTypeToRead },
                             BitConverter.GetBytes((long)1),
                             BitConverter.GetBytes(new DateTimeOffset(data.TimeStamp).ToUnixTimeSeconds()),
-                            BitConverter.GetBytes(data.Status));
+                            BitConverter.GetBytes(data.Status),
+                            BitConverter.GetBytes(data.TempTarget),
+                            BitConverter.GetBytes(data.PhTarget),
+                            BitConverter.GetBytes(data.RPMTarget));
                     }
                     else if (dataTypeToRead == 4)
                     {
@@ -254,7 +276,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (data == null)
                         {
-                            return DataPacketModel.InternalError();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         var type = Encoding.UTF8.GetBytes(data.Type);
@@ -281,7 +304,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (data == null)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes = DataPacketModel.CombineByteArrays(
@@ -297,7 +321,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (data == null)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes = DataPacketModel.CombineByteArrays(
@@ -313,7 +338,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (data == null)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes = DataPacketModel.CombineByteArrays(
@@ -329,14 +355,18 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (data == null)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes = DataPacketModel.CombineByteArrays(
                             new byte[2] { dataFlag, dataTypeToRead },
                             BitConverter.GetBytes((long)1),
                             BitConverter.GetBytes(new DateTimeOffset(data.TimeStamp).ToUnixTimeSeconds()),
-                            BitConverter.GetBytes(data.Status));
+                            BitConverter.GetBytes(data.Status),
+                            BitConverter.GetBytes(data.TempTarget),
+                            BitConverter.GetBytes(data.PhTarget),
+                            BitConverter.GetBytes(data.RPMTarget));
                     }
                     else if (dataTypeToRead == 4)
                     {
@@ -345,7 +375,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (data == null)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         var type = Encoding.UTF8.GetBytes(data.Type);
@@ -372,7 +403,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (dataList == null || dataList.Count == 0)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes[0] = dataFlag;
@@ -391,7 +423,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (dataList == null || dataList.Count == 0)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes[0] = dataFlag;
@@ -410,7 +443,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (dataList == null || dataList.Count == 0)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes[0] = dataFlag;
@@ -429,7 +463,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (dataList == null || dataList.Count == 0)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes[0] = dataFlag;
@@ -439,6 +474,9 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         {
                             dataBytes = DataPacketModel.AppendByteArrays(dataBytes, BitConverter.GetBytes(new DateTimeOffset(data.TimeStamp).ToUnixTimeSeconds()));
                             dataBytes = DataPacketModel.AppendByteArrays(dataBytes, BitConverter.GetBytes(data.Status));
+                            dataBytes = DataPacketModel.AppendByteArrays(dataBytes, BitConverter.GetBytes(data.TempTarget));
+                            dataBytes = DataPacketModel.AppendByteArrays(dataBytes, BitConverter.GetBytes(data.PhTarget));
+                            dataBytes = DataPacketModel.AppendByteArrays(dataBytes, BitConverter.GetBytes(data.RPMTarget));
                         }
                     }
                     else if (dataTypeToRead == 4)
@@ -448,7 +486,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         byte dataFlag = 0b00010000; // store binary data
                         if (dataList == null || dataList.Count == 0)
                         {
-                            return InternalErrorResponse();
+                            await InternalErrorResponse(socketId);
+                            return;
                         }
 
                         dataBytes[0] = dataFlag;
@@ -469,11 +508,11 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
                 if (dataBytes == null)
                 {
-                    return InvalidPacketResponse();
+                    await InternalErrorResponse(socketId);
+                    return;
                 }
 
-                var encryptedDataBytes = PacketService.Encrypt(dataBytes, client.EncryptionKey, client.EncryptionIV);
-                packetModel = DataReturnResponse(client, encryptedDataBytes);
+                await DataReturnResponse(socketId, client, dataBytes);
             }
             else if (command == 1)
             {
@@ -497,7 +536,18 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                 Temperature = temperature
                             };
 
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = client.Identifier,
+                                data = new
+                                {
+                                    data_type = "temperature",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    data = temperature
+                                }
+                            });
                             await _dataService.StoreDataToDbAsync<TempData>(client, tempData);
+                            _chainService.RespondChain(packet.ChainIdentifier, tempData);
                         }
                     }
                     else if (dataTypeToStore == 1)
@@ -515,7 +565,18 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                 RPM = rpm
                             };
 
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = client.Identifier,
+                                data = new
+                                {
+                                    data_type = "rpm",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    data = rpm
+                                }
+                            });
                             await _dataService.StoreDataToDbAsync<StirringData>(client, rpmData);
+                            _chainService.RespondChain(packet.ChainIdentifier, rpmData);
                         }
 
                     }
@@ -534,25 +595,53 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                 pH = ph
                             };
 
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = client.Identifier,
+                                data = new
+                                {
+                                    data_type = "ph",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    data = ph
+                                }
+                            });
                             await _dataService.StoreDataToDbAsync<pHData>(client, phData);
+                            _chainService.RespondChain(packet.ChainIdentifier, phData);
                         }
                     }
                     else if (dataTypeToStore == 3)
                     {
-                        for (int i = 9; i < dataCount * 16; i += 12) // data starts from 9th byte and each packet is 16 bytes
+                        for (int i = 9; i < dataCount * 16; i += 24) // data starts from 9th byte and each packet is 16 bytes
                         {
                             var timeStamp = DateTimeOffset.FromUnixTimeSeconds(BitConverter.ToInt64(pureData, i)).UtcDateTime;
                             var status = BitConverter.ToUInt32(pureData, i + 8);
+                            var tempTarget = BitConverter.ToUInt32(pureData, i + 12);
+                            var phTarget = BitConverter.ToUInt32(pureData, i + 16);
+                            var rpmTarget = BitConverter.ToUInt32(pureData, i + 20);
 
                             var statusData = new DeviceStatusData()
                             {
                                 Client = client,
                                 ClientId = client.Id,
                                 TimeStamp = timeStamp,
-                                Status = status
+                                Status = status,
+                                TempTarget = tempTarget,
+                                PhTarget = phTarget,
+                                RPMTarget = rpmTarget
                             };
 
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = client.Identifier,
+                                data = new
+                                {
+                                    data_type = "status",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    data = new { status, tempTarget, phTarget, rpmTarget }
+                                }
+                            });
                             await _dataService.StoreDataToDbAsync<DeviceStatusData>(client, statusData);
+                            _chainService.RespondChain(packet.ChainIdentifier, statusData);
                         }
                     }
                     else if (dataTypeToStore == 4)
@@ -579,16 +668,29 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                 Message = message
                             };
 
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = client.Identifier,
+                                data = new
+                                {
+                                    data_type = "log",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    log_level = type,
+                                    log_message = message
+                                }
+                            });
                             await _dataService.StoreDataToDbAsync<LogData>(client, logData);
+                            _chainService.RespondChain(packet.ChainIdentifier, logData);
                         }
                     }
                 }
                 catch
                 {
-                    return InvalidPacketResponse();
+                    await InvalidPacketResponse(socketId);
+                    return;
                 }
 
-                packetModel = AckResponse(packet.PacketIdentifier);
+                await AckResponse(socketId, packet.ChainIdentifier);
             }
 
             if (packetModel != null)
@@ -596,24 +698,11 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 var packetSignature = _packetService.SignPacket(packetModel, client.SignatureKey);
                 if (packetSignature == null)
                 {
-                    return InternalErrorResponse();
+                    await InternalErrorResponse(socketId);
+                    return;
                 }
                 packetModel.PacketSignature = packetSignature;
             }
-
-            return packetModel;
-        }
-
-        public async Task<DataPacketModel?> HandleAckAsync(DataPacketModel packet)
-        {
-            if(packet.PacketIdentifier == null || packet.PacketIdentifier.Length != 16)
-            {
-                return InvalidPacketResponse();
-            }
-
-            ExpectedAcks.TryRemove(packet.PacketIdentifier, out _);
-
-            return null;
         }
 
         // Lets see how to parse data, data is any request or reponse from the client
@@ -626,13 +715,14 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         // fourth to sixth bits are command 0 for get, 1 for store, 2 for command, 3 to 7 are reserved
         // seventh and eighth bits are reserved
 
-        public async Task<DataPacketModel?> HandleDataAsync(RegisteredClient client, byte[] data, DataPacketModel packet)
+        public async Task HandleDataAsync(string socketId, RegisteredClient client, byte[] data, DataPacketModel packet)
         {
             // We are assuming that the packet is confirmed and the data exists and client is authorized
 
             if (data.Length < 1)
             {
-                return InvalidPacketResponse();
+                await InvalidPacketResponse(socketId);
+                return;
             }
 
             var flag = data[0];
@@ -643,17 +733,25 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             if (dataType == 0)
             {
                 var pureData = data.Length > 1 ? data[1..] : new byte[0];
-                return await HandleBinaryData(command, client, pureData, packet);
+                await HandleBinaryData(socketId, command, client, pureData, packet);
             }
             else
             {
-                return InvalidPacketResponse();
+                await InvalidPacketResponse(socketId);
+                return;
             }
         }
 
-        public async Task<DataPacketModel?> HandleErrorAsync(RegisteredClient client, PacketError error, byte[] data, DataPacketModel packet)
+        public async Task HandleErrorAsync(string socketId, RegisteredClient client, PacketError error, byte[] data, DataPacketModel packet)
         {
-            return AckResponse(packet.PacketIdentifier); // just ack the error for now
+            await _sseClientService.PublishAsJsonAsync("error", new 
+            { 
+                client_id = client.Identifier, 
+                time_stamp = packet.SentAt,
+                error = error 
+            }); 
+
+            await AckResponse(socketId, packet.ChainIdentifier); // just ack the error for now
         }
     }
 }

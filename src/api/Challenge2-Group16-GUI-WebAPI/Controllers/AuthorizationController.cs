@@ -33,7 +33,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         [HttpGet("authorize")]
         public IActionResult Authorize([FromQuery] AuthorizationRequest request)
         {
-            
+
             TempData["client_id"] = request.client_id == _configuration["ClientSettings:ClientId"] ? request.client_id : "";
             TempData["redirect_uri"] = request.redirect_uri == _configuration["ClientSettings:RedirectUri"] ? request.redirect_uri : "";
             TempData["response_type"] = request.response_type == _configuration["ClientSettings:ResponseType"] ? request.response_type : "";
@@ -48,13 +48,13 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         [HttpGet("SignIn")]
         public IActionResult SignIn()
         {
-            if((TempData.Peek("client_id")?.ToString().IsNullOrEmpty() ?? true) ||
-                (TempData.Peek("redirect_uri")?.ToString().IsNullOrEmpty() ?? true) ||
-                (TempData.Peek("response_type")?.ToString().IsNullOrEmpty() ?? true) ||
-                (TempData.Peek("scope")?.ToString().IsNullOrEmpty() ?? true) ||
-                (TempData.Peek("state")?.ToString().IsNullOrEmpty() ?? true) ||
-                (TempData.Peek("code_challenge")?.ToString().IsNullOrEmpty() ?? true) ||
-                (TempData.Peek("code_challenge_method")?.ToString().IsNullOrEmpty() ?? true))
+            if ((TempData.Peek("client_id")?.ToString()).IsNullOrEmpty() ||
+                (TempData.Peek("redirect_uri")?.ToString()).IsNullOrEmpty() ||
+                (TempData.Peek("response_type")?.ToString()).IsNullOrEmpty() ||
+                (TempData.Peek("scope")?.ToString()).IsNullOrEmpty() ||
+                (TempData.Peek("state")?.ToString()).IsNullOrEmpty() ||
+                (TempData.Peek("code_challenge")?.ToString()).IsNullOrEmpty() ||
+                (TempData.Peek("code_challenge_method")?.ToString()).IsNullOrEmpty())
             {
                 return BadRequest(new { error = "missing_authorization_request" });
             }
@@ -69,12 +69,17 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
             if (result.Succeeded)
             {
                 var user = await _userManager.FindByNameAsync(username);
+                if (user == null)
+                {
+                    return BadRequest(new { error = "invalid_sign_in" });
+                }
+
                 var code = await _authService.GenerateAuthorizationCodeAsync(
-                    TempData["client_id"].ToString(),
-                    TempData["redirect_uri"].ToString(),
-                    TempData["scope"].ToString(),
-                    TempData["code_challenge"].ToString(),
-                    TempData["code_challenge_method"].ToString(),
+                    TempData["client_id"]?.ToString() ?? "",
+                    TempData["redirect_uri"]?.ToString() ?? "",
+                    TempData["scope"]?.ToString() ?? "",
+                    TempData["code_challenge"]?.ToString() ?? "",
+                    TempData["code_challenge_method"]?.ToString() ?? "",
                     user);
 
                 var redirectUri = $"{TempData["redirect_uri"]}?code={code}&state={TempData["state"]}";
@@ -86,7 +91,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
 
         [HttpGet("is-signed-in")]
         [Authorize]
-        public async Task<IActionResult> IsSignedIn()
+        public IActionResult IsSignedIn()
         {
             return Ok();
         }
@@ -144,12 +149,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         [HttpPost("oauth/refresh")]
         public async Task<IActionResult> Refresh([FromForm] RefreshRequest refreshRequest)
         {
-            if(refreshRequest.grant_type != "refresh_token")
+            if (refreshRequest.grant_type != "refresh_token")
             {
                 return BadRequest(new { error = "unsupported_grant_type" });
             }
 
-            if(refreshRequest.scope != _configuration["ClientSettings:Scope"])
+            if (refreshRequest.scope != _configuration["ClientSettings:Scope"])
             {
                 return BadRequest(new { error = "invalid_scope" });
             }

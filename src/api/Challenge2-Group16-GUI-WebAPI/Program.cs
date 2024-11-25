@@ -76,19 +76,21 @@ public class Program
                 };
             });
 
-        // Add custom service
+        // Singleton Services
+        builder.Services.AddSingleton<SseClientService>();
+
+        // Scoped Services
         builder.Services.AddScoped<PacketService>();
         builder.Services.AddScoped<RegisteredClientService>();
         builder.Services.AddScoped<DataService>();
+        builder.Services.AddScoped<ChainService>();
         builder.Services.AddScoped<PacketHandlingService>();
         builder.Services.AddScoped<PacketManagingService>();
         builder.Services.AddScoped<WebSocketManagerService>();
         builder.Services.AddScoped<WebSocketHandlerService>();
-        builder.Services.AddScoped<DeviceService>();
         builder.Services.AddScoped<AuthService>();
 
         builder.Host.UseSerilog();
-
 
         var app = builder.Build();
 
