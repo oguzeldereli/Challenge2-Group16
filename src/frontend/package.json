@@ -18,6 +18,7 @@
     "@mui/material": "^6.1.7",
     "@mui/x-charts": "^7.22.2",
     "@mui/x-date-pickers": "^7.22.2",
+    "@sanity/eventsource": "^5.0.2",
     "axios": "^1.7.7",
     "dayjs": "^1.11.13",
     "jwt-decode": "^4.0.0",

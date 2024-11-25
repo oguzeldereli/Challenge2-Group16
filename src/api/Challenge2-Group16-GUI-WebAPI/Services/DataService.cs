@@ -146,6 +146,9 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     {
                         TimeStamp = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(deviceStatusAggregateData?.DataTimeStamps[(i * 8)..(i * 8 + 8)] ?? new byte[8])).UtcDateTime,
                         Status = Convert.ToUInt32(deviceStatusAggregateData?.StatusAggregate[(i * 4 + 8)..(i * 4 + 12)] ?? new byte[4]),
+                        TempTarget = Convert.ToUInt32(deviceStatusAggregateData?.StatusAggregate[(i * 4 + 12)..(i * 4 + 16)] ?? new byte[4]),
+                        PhTarget = Convert.ToUInt32(deviceStatusAggregateData?.StatusAggregate[(i * 4 + 16)..(i * 4 + 20)] ?? new byte[4]),
+                        RPMTarget = Convert.ToUInt32(deviceStatusAggregateData?.StatusAggregate[(i * 4 + 20)..(i * 4 + 24)] ?? new byte[4]),
                         ClientId = client.Id
                     } as T2);
                 }

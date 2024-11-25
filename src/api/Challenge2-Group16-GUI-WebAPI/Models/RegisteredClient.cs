@@ -8,6 +8,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         confidential
     }
 
+    public enum DeviceStatus
+    {
+        NotOperational,
+        Operational,
+    }
+
     public class RegisteredClient
     {
         public string Id { get; set; }
@@ -42,7 +48,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         public List<StirringAggregateData> StirringAggregateDatas { get; set; }
         public List<DeviceStatusAggregateData> deviceStatusAggregateDatas { get; set; }
         public List<LogAggregateData> ErrorAggregateDatas { get; set; }
-
 
         public RegisteredClient()
         {
