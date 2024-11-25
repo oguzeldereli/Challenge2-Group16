@@ -16,7 +16,7 @@ export default function Dashboard(props)
             <Navbar />
             <Stack direction="column" sx={{maxWidth: "1200px", margin: "auto", px: 2}}>
                 <ClientSelector variant="main" selectedDevice={props.selectedDevice} devices={props.devices} setSelectedDevice={props.setSelectedDevice} />
-                <CurrentDataPanel />
+                <CurrentDataPanel data={props} />
                 <Stack direction="row" gap={3}>
                     <CurrentDataTabs />
                     <MiniLogView logs={props.logs}/>

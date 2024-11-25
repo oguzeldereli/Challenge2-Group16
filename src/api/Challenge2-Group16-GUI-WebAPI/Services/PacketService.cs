@@ -37,7 +37,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             }
 
             // get signature from packet
-            var signature = GetDecryptedPacketSignature(packet);
+            var signature = GetPacketSignature(packet);
             if(signature == null)
             {
                 return false;
@@ -69,7 +69,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 (IsRegisterPacket(packet) || IsPacketSignatureValid(packet));
         }
 
-        public byte[]? GetDecryptedData(DataPacketModel packet)
+        public byte[]? GetData(DataPacketModel packet)
         {
             // get registered client
             var registeredClient = _context.Clients.FirstOrDefault(c => c.Identifier.SequenceEqual(packet.AuthorizationToken));
@@ -78,11 +78,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 return null;
             }
 
-            var data = packet.EncryptedData;
-            if (packet.PacketEncryptionMethod == (uint)PacketEncryptionMethod.AES)
-            {
-                data = Decrypt(packet.EncryptedData, registeredClient.EncryptionKey, registeredClient.EncryptionIV);
-            }
+            var data = packet.PacketData;
 
             return data;
         }
@@ -97,7 +93,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             return (PacketType)packet.PacketType == PacketType.Register;
         }
 
-        private byte[]? GetDecryptedPacketSignature(DataPacketModel packet)
+        private byte[]? GetPacketSignature(DataPacketModel packet)
         {
             // get registered client
             var registeredClient = _context.Clients.FirstOrDefault(c => c.Identifier.SequenceEqual(packet.AuthorizationToken));
@@ -107,71 +103,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             }
 
             var signature = packet.PacketSignature;
-            if (packet.PacketEncryptionMethod == (uint)PacketEncryptionMethod.AES)
-            {
-                signature = Decrypt(packet.PacketSignature, registeredClient.EncryptionKey, registeredClient.EncryptionIV);
-            }
 
             return signature;
-        }
-
-        public static byte[] Encrypt(byte[] plainBytes, byte[] key, byte[] iv)
-        {
-            if (plainBytes == null || plainBytes.Length <= 0)
-                throw new ArgumentNullException(nameof(plainBytes));
-            if (key == null || key.Length <= 0)
-                throw new ArgumentNullException(nameof(key));
-            if (iv == null || iv.Length <= 0)
-                throw new ArgumentNullException(nameof(iv));
-
-            using (Aes aesAlg = Aes.Create())
-            {
-                aesAlg.Key = key;
-                aesAlg.IV = iv;
-
-                ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
-
-                using (MemoryStream msEncrypt = new MemoryStream())
-                {
-                    using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
-                    {
-                        csEncrypt.Write(plainBytes, 0, plainBytes.Length);
-                    }
-
-                    return msEncrypt.ToArray();
-                }
-            }
-        }
-
-        public static byte[] Decrypt(byte[] cipherBytes, byte[] key, byte[] iv)
-        {
-            if (cipherBytes == null || cipherBytes.Length <= 0)
-                throw new ArgumentNullException(nameof(cipherBytes));
-            if (key == null || key.Length <= 0)
-                throw new ArgumentNullException(nameof(key));
-            if (iv == null || iv.Length <= 0)
-                throw new ArgumentNullException(nameof(iv));
-
-            using (Aes aesAlg = Aes.Create())
-            {
-                aesAlg.Key = key;
-                aesAlg.IV = iv;
-
-                // Create a decryptor
-                ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
-
-                using (MemoryStream msDecrypt = new MemoryStream(cipherBytes))
-                {
-                    using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
-                    {
-                        using (MemoryStream originalBytes = new MemoryStream())
-                        {
-                            csDecrypt.CopyTo(originalBytes);
-                            return originalBytes.ToArray(); // Return decrypted byte array
-                        }
-                    }
-                }
-            }
         }
     }
 }

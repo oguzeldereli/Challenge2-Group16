@@ -47,7 +47,7 @@ const ClientSelector = ({ selectedDevice, devices, setSelectedDevice, variant })
                 }} 
                 placeholder="Select a device" 
                 onChange={(e) => setSelectedDevice(e.target.value)}>
-                    {devices && devices.map(device => (
+                    {devices && typeof devices !== "undefined" && devices.length > 0 && devices.map(device => (
                         <Option key={device.id} value={device.id}>{device.id}</Option>
                     ))}
                 </Select >

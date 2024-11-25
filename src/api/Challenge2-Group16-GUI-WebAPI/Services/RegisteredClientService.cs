@@ -1,5 +1,7 @@
 ﻿using Challenge2_Group16_GUI_WebAPI.Data;
 using Challenge2_Group16_GUI_WebAPI.Models;
+using Microsoft.AspNetCore.Razor.TagHelpers;
+using NuGet.Packaging.Signing;
 using System.Security.Cryptography;
 
 namespace Challenge2_Group16_GUI_WebAPI.Services
@@ -7,10 +9,17 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
     public class RegisteredClientService
     {
         private readonly ApplicationDbContext _context;
+        private readonly SseClientService _sseClientService;
+        private readonly WebSocketManagerService _webSocketManagerService;
 
-        public RegisteredClientService(ApplicationDbContext context)
+        public RegisteredClientService(
+            ApplicationDbContext context,
+            SseClientService sseClientService,
+            WebSocketManagerService webSocketManagerService)
         {
             _context = context;
+            _sseClientService = sseClientService;
+            _webSocketManagerService = webSocketManagerService;
         }
 
         public async Task<RegisteredClient?> RegisterClientAsync(byte[] clientIdentifier, ClientType type)
@@ -38,7 +47,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             return client;
         }
 
-        public async Task<byte[]?> AuthorizeClientAsync(byte[] clientIdentifier, byte[] clientSecret)
+        public async Task<byte[]?> AuthorizeClientAsync(string socketId, byte[] clientIdentifier, byte[] clientSecret)
         {
             if(clientIdentifier.Length != 16 || clientSecret.Length != 32)
             {
@@ -54,6 +63,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             var authToken = new byte[16];
             RandomNumberGenerator.Fill(authToken);
             registeredClient.TemporaryAuthToken = authToken;
+            await _webSocketManagerService.BindClient(socketId, registeredClient);
             await _context.SaveChangesAsync();
 
             return authToken;
@@ -72,7 +82,9 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 return false;
             }
 
+            
             registeredClient.TemporaryAuthToken = new byte[16];
+            await _webSocketManagerService.UnbindClient(registeredClient);
             await _context.SaveChangesAsync();
             return true;
         }
