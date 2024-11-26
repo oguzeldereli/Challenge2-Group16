@@ -5,7 +5,7 @@
 // Replace with your eduroam credentials
 char* ssid = "eduroam";
 char* USER = "zcabogu@ucl.ac.uk";
-char* PASS = "Muhtesem3011";
+char* PASS = "xxxxxxxxxxxx";
 
 void setup() {
     Serial.begin(115200); // initialize serial connection

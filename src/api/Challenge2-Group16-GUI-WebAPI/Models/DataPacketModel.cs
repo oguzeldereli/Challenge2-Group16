@@ -84,7 +84,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
                 // 6. Extract PacketError (bytes 52-55)
                 createdPacket.PacketError = BitConverter.ToUInt32(packet, 52);
 
-                // 8. Extract DataSize (bytes 60-63)
+                // 8. Extract DataSize (bytes 56-59)
                 createdPacket.DataSize = BitConverter.ToUInt32(packet, 56);
 
                 // Validate that the packet contains enough bytes for Data and PacketSign
@@ -103,7 +103,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
                 createdPacket.PacketData = packet[60..(60 + (int)createdPacket.DataSize)];
 
                 // 10. Extract PacketSign (last 32 bytes)
-                createdPacket.PacketSignature = packet[(640 + (int)createdPacket.DataSize)..(92 + (int)createdPacket.DataSize)];
+                createdPacket.PacketSignature = packet[(60 + (int)createdPacket.DataSize)..(92 + (int)createdPacket.DataSize)];
             }
             catch (ArgumentOutOfRangeException ex)
             {

@@ -56,7 +56,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
 
         public static RegisteredClient? Create(byte[] identifier, ClientType type)
         {
-            if(identifier.Length != 16)
+            if(identifier.Length != 32)
             {
                 return null;
             }
