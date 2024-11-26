@@ -325,7 +325,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
                 await ParseAndHandlePacketAsync(socketId, packet);
             }
-            while (type != WebSocketMessageType.Close && socket.State == WebSocketState.Open);
+            while (type != WebSocketMessageType.Close);
 
             await _webSocketManagerService.RemoveSocketAsync(socketId);
         }

@@ -10,7 +10,7 @@ void websocket_write_bin(uint8_t *data, uint16_t length);
 void websocket_keepalive();
 
 #define MAC_ADDRESS_SIZE 6
-#define WEBSOCKET_SERVER "wss://some-website.com"
+#define WEBSOCKET_SERVER "tjvdds4c-443.uks1.devtunnels.ms"
 
 uint8_t *get_mac_address();
 
