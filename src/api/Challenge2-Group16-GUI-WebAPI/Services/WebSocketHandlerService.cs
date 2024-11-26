@@ -81,12 +81,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         {
             if (packet.AuthorizationToken.SequenceEqual(new byte[16]) &&
                     packet.PacketError == (uint)PacketError.None &&
-                    packet.DataSize == 20 &&
-                    packet.PacketData.Length == 20 &&
+                    packet.DataSize == 36 &&
+                    packet.PacketData.Length == 36 &&
                     packet.PacketSignature.SequenceEqual(new byte[32]))
             {
-                byte[] clientId = packet.PacketData.Take(16).ToArray();
-                ClientType clientType = (ClientType)BitConverter.ToUInt32(packet.PacketData.Skip(16).Take(4).ToArray(), 0);
+                byte[] clientId = packet.PacketData.Take(32).ToArray();
+                ClientType clientType = (ClientType)BitConverter.ToUInt32(packet.PacketData.Skip(32).Take(4).ToArray(), 0);
                 var registerResult = await _registeredClientService.RegisterClientAsync(clientId, clientType);
                 if (registerResult == null)
                 {
@@ -106,11 +106,11 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         {
             if (packet.AuthorizationToken.SequenceEqual(new byte[16]) &&
                     packet.PacketError == (uint)PacketError.None &&
-                    packet.DataSize == 48 &&
-                    packet.PacketData.Length == 48)
+                    packet.DataSize == 64 &&
+                    packet.PacketData.Length == 64)
             {
-                byte[] clientId = packet.PacketData.Take(16).ToArray();
-                byte[] clientSecret = packet.PacketData.Skip(16).Take(32).ToArray();
+                byte[] clientId = packet.PacketData.Take(32).ToArray();
+                byte[] clientSecret = packet.PacketData.Skip(32).Take(32).ToArray();
 
                 var temporaryAuthToken = await _registeredClientService.AuthorizeClientAsync(socketId, clientId, clientSecret);
                 if (temporaryAuthToken == null)

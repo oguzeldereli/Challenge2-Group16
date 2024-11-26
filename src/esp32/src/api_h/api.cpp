@@ -1,14 +1,14 @@
 #include "./api.h"
+#include "../packets/packets.h"
 #include "../connection/connection.h"
-#include "../cryptography/crypt.h"
-#include "../storage/storage.h"
-#include <cstring>
 
-void generate_store_identifier()
+void register_client()
 {
-    uint8_t *mac_address = get_mac_address();
-    uint8_t *hash = sha256_hash(mac_address, MAC_ADDRESS_SIZE);
-    preferences_t *prefs = get_preferences();
-    memcpy(&prefs->identifier, hash, 32);
-    set_preferences(prefs);
-}
+    uint16_t length;
+    uint8_t *packet = write_register_request_normalized(&length);
+
+    if(websocket_isConnected())
+    {
+        websocket_write_bin(packet, length);
+    }
+}   
