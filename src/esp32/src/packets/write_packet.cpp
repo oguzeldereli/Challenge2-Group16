@@ -64,7 +64,7 @@ void set_packet_identifier_on_buffer(uint8_t *identifier)
     memcpy(packet->packetIdentifier, identifier, 16);
 }
 
-void and_sign_packet_on_buffer()
+void sign_packet_on_buffer()
 {
     memset(write_normalized_packet_buffer, 0, MAXIMUM_PACKET_SIZE);
     data_packet_model_t *packet = (data_packet_model_t *)write_packet_buffer;
@@ -105,7 +105,20 @@ void generate_store_identifier()
     set_preferences(prefs);
 }
 
-uint8_t *write_register_request_normalized(uint16_t *dataLength)
+uint8_t *write_ack_normalized(uint8_t *chainIdentifier, uint16_t *packetLength)
+{
+    data_packet_model_t *packet = create_packet_on_buffer();
+    packet->packetType = 0; // ack packet
+    uint8_t *auth_token = get_auth_token();
+    memcpy(packet->authorizationToken, auth_token, 16);
+    packet->packetError = 0;
+    packet->dataSize = 0;
+    set_packet_identifier_on_buffer(chainIdentifier);
+    sign_packet_on_buffer();
+    return write_normalized_packet(dataLength);
+}
+
+uint8_t *write_register_request_normalized(uint16_t *packetLength)
 {
     data_packet_model_t *packet = create_packet_on_buffer();
     packet->packetType = 1; // register packet
@@ -116,8 +129,49 @@ uint8_t *write_register_request_normalized(uint16_t *dataLength)
     preferences_t *prefs = get_preferences();
     memset(data, 0, 36);
     memcpy(data, prefs->identifier, 32); // client identifier (hash of mac address)
-    data[32] = 0x01; // confidential client
+    data[32] = 0x01;                     // confidential client
     set_packet_data_on_buffer(data, 36);
-    memset(packet->packetSignature, 0, 16);
+    memset(packet->packetSignature, 0, 32);
+    return write_normalized_packet(packetLength);
+}
+
+uint8_t *write_auth_request_normalized(uint16_t *packetLength)
+{
+    data_packet_model_t *packet = create_packet_on_buffer();
+    packet->packetType = 2; // auth packet
+    memset(packet->authorizationToken, 0, 16);
+    packet->packetError = 0;
+    uint8_t data[64];
+    preferences_t *prefs = get_preferences();
+    memset(data, 0, 64);
+    memcpy(data, prefs->identifier, 32);  // client identifier (hash of mac address)
+    memcpy(data + 32, prefs->secret, 32); // client identifier (hash of mac address)
+    set_packet_data_on_buffer(data, 64);
+    memset(packet->packetSignature, 0, 32);
+    return write_normalized_packet(packetLength);
+}
+
+uint8_t *write_revoke_auth_request_normalized(uint16_t *packetLength)
+{
+    data_packet_model_t *packet = create_packet_on_buffer();
+    packet->packetType = 3; // revoke auth packet
+    uint8_t *auth_token = get_auth_token();
+    memcpy(packet->authorizationToken, auth_token, 16);
+    packet->packetError = 0;
+    packet->dataSize = 0;
+    sign_packet_on_buffer();
+    return write_normalized_packet(packetLength);
+}
+
+uint8_t *write_data_packet_normalized(uint8_t *data, uint32_t length, uint16_t *packetLength)
+{
+    data_packet_model_t *packet = create_packet_on_buffer();
+    packet->packetType = 4; // data packet
+    uint8_t *auth_token = get_auth_token();
+    memcpy(packet->authorizationToken, auth_token, 16);
+    packet->packetError = 0;
+    packet->dataSize = length;
+    memcpy(packet->data, data, length);
+    sign_packet_on_buffer();
     return write_normalized_packet(dataLength);
 }
