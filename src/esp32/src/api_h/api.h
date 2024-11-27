@@ -3,7 +3,7 @@
 
 void ack_client();
 void register_client();
-void auth_client();
+void revoke_auth_client();
 void revoke_auth();
 void send_data_to_server(uint8_t *data, uint32_t dataLength);
 
