@@ -5,7 +5,7 @@
 #include <cstring>
 #include "time.h"
 
-uint8_t write_packet_buffer[MAXIMUM_PACKET_SIZE + 8];
+uint8_t write_packet_buffer[MAXIMUM_PACKET_SIZE + 8]; // +8 because there is a single pointer allocation extra
 uint8_t write_normalized_packet_buffer[MAXIMUM_PACKET_SIZE];
 
 uint8_t valid_packet_signature[8] = {1, 16, 'e', 's', 'p', 'c', 'o', 'm'};

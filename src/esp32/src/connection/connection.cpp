@@ -9,12 +9,13 @@
 bool wifi_wait()
 {
     int max_attempts = 30;
-    while (WiFi.status() != WL_CONNECTED && max_attempts > 0) {
+    while (WiFi.status() != WL_CONNECTED && max_attempts > 0)
+    {
         delay(500);
         max_attempts--;
     }
 
-    if(WiFi.status() == WL_CONNECTED)
+    if (WiFi.status() == WL_CONNECTED)
     {
         return true;
     }
@@ -64,6 +65,8 @@ void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     case WStype_BIN:
         Serial.println("Received binary data");
         read_normalized_packet(payload, (uint16_t)length);
+        data_packet_model_t *packet = structurize_packet();
+        handle_packet(packet);
         break;
 
     case WStype_PING:
