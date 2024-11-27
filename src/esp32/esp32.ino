@@ -3,24 +3,24 @@
 #include <HTTPClient.h>
 
 // Replace with your eduroam credentials
-char* ssid = "eduroam";
-char* USER = "zcabogu@ucl.ac.uk";
-char* PASS = "xxxxxxxxxxxx";
+char *ssid = "eduroam";
+char *USER = "zcabogu@ucl.ac.uk";
+char *PASS = "xxxxxxxxxxxx";
 
-void setup() {
+void setup()
+{
     Serial.begin(115200); // initialize serial connection
-    delay(1000);
+    delay(1000);          // give time for serial to init
     Serial.println("Initializing I2C connection with Arduino...");
     i2c_init_listener(); // initialize arduino connection
     Serial.println("Done.");
 
     bool connected = false;
-    do 
+    do
     {
         Serial.println("Attempting WiFi connection...");
         connected = wifi_begin_enterprise(ssid, USER, PASS); // connect to eduroam
-    }
-    while(!connected);
+    } while (!connected);
     Serial.println("Done.");
 
     Serial.println("Configuring Time...");
@@ -32,8 +32,7 @@ void setup() {
     Serial.println("Done.");
 }
 
-
-void loop() 
+void loop()
 {
     websocket_keepalive();
 }
