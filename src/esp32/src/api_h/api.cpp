@@ -36,7 +36,7 @@ void auth_client()
     }
 }
 
-void revoke_auth()
+void revoke_auth_client()
 {
     uint16_t length;
     uint8_t *packet = write_revoke_auth_request_normalized(&length);
