@@ -18,7 +18,13 @@ typedef struct
     uint8_t packetSignature[32];
 } data_packet_model_t;
 
-uint8_t *write_register_request_normalized(uint16_t *dataLength);
 void read_normalized_packet(uint8_t *data, uint16_t length);
+data_packet_model_t *structurize_packet();
+void handle_packet(data_packet_model_t *packet);
 
+uint8_t *write_ack_normalized(uint8_t *chainIdentifier, uint16_t *packetLength);
+uint8_t *write_register_request_normalized(uint16_t *packetLength);
+uint8_t *write_auth_request_normalized(uint16_t *packetLength);
+uint8_t *write_revoke_auth_request_normalized(uint16_t *packetLength);
+uint8_t *write_data_packet_normalized(uint8_t *data, uint32_t length, uint16_t *packetLength);
 #endif
