@@ -24,9 +24,16 @@ void read_normalized_packet(uint8_t *data, uint16_t length)
     memcpy(read_normalized_packet_buffer, data, length);
 }
 
-void structurize_packet()
+data_packet_model_t *structurize_packet()
 {
     data_packet_model_t *packet = (data_packet_model_t *)read_packet_buffer;
-    memcpy(packet, read_normalized_packet_buffer, 60);
+    memcpy(packet, read_normalized_packet_buffer, 60); // copy fixed parts
+    memcpy(packet + sizeof(data_packet_model_t), read_normalized_packet_buffer + 60, packet->dataSize); // copy data
+    memcpy(packet->packetSignature, read_normalized_packet_buffer + 60 + packet->dataSize, 32); // copy signature
+    return packet;
+}
+
+void handle_packet(data_packet_model_t *packet)
+{
     
 }
