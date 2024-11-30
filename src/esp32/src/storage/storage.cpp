@@ -54,6 +54,9 @@ void set_preferences(preferences_t *prefs)
     store_bytes("identifier", prefs->identifier, 32);
     store_bytes("secret", prefs->secret, 32);
     store_bytes("signature", prefs->signatureKey, 32);
+    store_bytes("tempTarget", prefs->tempTarget, 8);
+    store_bytes("phTarget", prefs->phTarget, 8);
+    store_bytes("rpmTarget", prefs->rpmTarget, 8);
 }
 
 preferences_t last_preferences;
@@ -62,6 +65,9 @@ preferences_t *get_preferences()
     read_bytes_to("identifier", last_preferences.identifier, 32);
     read_bytes_to("secret", last_preferences.secret, 32);
     read_bytes_to("signature", last_preferences.signatureKey, 32);
+    read_bytes_to("tempTarget", last_preferences.tempTarget, 8);
+    read_bytes_to("phTarget", last_preferences.phTarget, 8);
+    read_bytes_to("rpmTarget", last_preferences.rpmTarget, 8);
 
     return &last_preferences;
 }

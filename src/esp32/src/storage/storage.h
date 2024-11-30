@@ -15,6 +15,9 @@ typedef struct
     uint8_t identifier[32];
     uint8_t secret[32];
     uint8_t signatureKey[32];
+    double tempTarget;
+    double rpmTarget;
+    double phTarget;
 } preferences_t;
 
 void set_preferences(preferences_t *prefs);
