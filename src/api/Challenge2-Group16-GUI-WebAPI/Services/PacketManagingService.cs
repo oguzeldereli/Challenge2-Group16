@@ -35,7 +35,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task StartRequest(string socketId, RegisteredClient client)
         {
-            byte flag = 0b00011000; // binary command data
+            byte flag = 0b00010000; // binary command data
             byte[] data = { flag, 0xff }; // start command 0xff
 
             var packet = DataPacketModel.Data(data);
@@ -54,7 +54,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task PauseRequest(string socketId, RegisteredClient client)
         {
-            byte flag = 0b00011000; // binary command data
+            byte flag = 0b00010000; // binary command data
             byte[] data = { flag, 0x00 }; // stop command 0x00
 
             var packet = DataPacketModel.Data(data);
@@ -71,17 +71,17 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public async Task SetTargetRequest(string socketId, RegisteredClient client, byte dataType, byte[] data)
+        public async Task SetTargetRequest(string socketId, RegisteredClient client, byte dataType, double data)
         {
-            if(data.Length == 0 || dataType > 2)
+            if(dataType > 2)
             {
                 await _packetHandlingService.InternalErrorResponse(socketId);
                 return;
             }
 
-            byte flag = 0b00011000; // binary command data
+            byte flag = 0b00010000; // binary command data
             byte[] fulldata = { flag, 0x01, dataType }; // set target command 0x01
-            fulldata = fulldata.Concat(data).ToArray();
+            fulldata = fulldata.Concat(BitConverter.GetBytes(data)).ToArray();
 
             var packet = DataPacketModel.Data(fulldata);
             var packetSignature = _packetService.SignPacket(packet, client.SignatureKey);
@@ -99,7 +99,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task<DeviceStatusData?> DeviceStatusRequest(string socketId, RegisteredClient client)
         {
-            byte flag = 0b00011000; // binary command data
+            byte flag = 0b00010000; // binary command data
             byte[] fulldata = { flag, 0x02 }; // get status command 0x02
 
             var packet = DataPacketModel.Data(fulldata);

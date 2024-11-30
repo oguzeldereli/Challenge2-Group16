@@ -173,5 +173,108 @@ uint8_t *write_data_packet_normalized(uint8_t *data, uint32_t length, uint16_t *
     packet->dataSize = length;
     memcpy(packet->data, data, length);
     sign_packet_on_buffer();
-    return write_normalized_packet(dataLength);
+    return write_normalized_packet(packetLength);
+}
+
+uint8_t *write_data_value_packet_normalized(uint8_t dataType, uint64_t timeStamp, double data, uint16_t *packetLength)
+{
+    // 1 byte packet flag = 0b00001000 binary data store
+    // 1 byte data type = dataType
+    // 8 bytes data count = 1
+    // 8 bytes timestamp = timeStamp
+    // 8 bytes value = data
+    // total 26 bytes
+
+    data_packet_model_t *packet = create_packet_on_buffer();
+    packet->packetType = 4; // data packet
+    uint8_t *auth_token = get_auth_token();
+    memcpy(packet->authorizationToken, auth_token, 16);
+    packet->packetError = 0;
+    packet->dataSize = 26;
+
+    uint8_t packetFlag = 0b00001000;
+    memcpy(packet->data, &packetFlag, sizeof(uint8_t));
+    memcpy(packet->data + 1, &dataType, sizeof(uint8_t));
+
+    uint64_t dataCount = 1;
+    memcpy(packet->data + 2, &dataCount, sizeof(uint64_t));
+    memcpy(packet->data + 10, &timeStamp, sizeof(uint64_t));
+    memcpy(packet->data + 18, &data, sizeof(uint64_t));
+
+    sign_packet_on_buffer();
+    return write_normalized_packet(packetLength);
+}
+
+uint8_t *write_device_status_packet_normalized(uint64_t timeStamp, uint32_t status, uint16_t *packetLength)
+{
+    // 1 byte packet flag = 0b00001000 binary data store
+    // 1 byte data type = 3 device status data
+    // 8 bytes data count = 1 a single status
+    // 8 bytes timestamp = timeStamp
+    // 4 bytes value = status
+    // 8 bytes value = tempTarget
+    // 8 bytes value = phTarget
+    // 8 bytes value = rpmTarget
+    // total 46 bytes
+
+    data_packet_model_t *packet = create_packet_on_buffer();
+    packet->packetType = 4; // data packet
+    uint8_t *auth_token = get_auth_token();
+    memcpy(packet->authorizationToken, auth_token, 16);
+    packet->packetError = 0;
+    packet->dataSize = 46;
+    
+    uint8_t packetFlag = 0b00001000;
+    memcpy(packet->data, &packetFlag, sizeof(uint8_t));
+    uint8_t dataType = 3;
+    memcpy(packet->data + 1, &dataType, sizeof(uint8_t));
+
+    preferences_t *prefs = get_preferences();
+
+    uint64_t dataCount = 1;
+    memcpy(packet->data + 2, &dataCount, sizeof(uint64_t));
+    memcpy(packet->data + 10, &timeStamp, sizeof(uint64_t));
+    memcpy(packet->data + 18, &status, sizeof(uint32_t));
+    memcpy(packet->data + 22, &prefs->tempTarget, sizeof(double));
+    memcpy(packet->data + 30, &prefs->phTarget, sizeof(double));
+    memcpy(packet->data + 38, &prefs->rpmTarget, sizeof(double));
+
+    sign_packet_on_buffer();
+    return write_normalized_packet(packetLength);
+}
+
+uint8_t *write_log_packet_normalized(uint64_t timeStamp, char *level, uint32_t levelLength, char *message, uint32_t messageLength, uint16_t *packetLength)
+{
+    // 1 byte packet flag = 0b00001000 binary data store
+    // 1 byte data type = 4 log data
+    // 8 bytes data count = 1 a single log
+    // 8 bytes timestamp = timeStamp
+    // 4 bytes value = levelLength
+    // levelLength bytes value = level
+    // 4 bytes value = messageLength
+    // messageLength bytes value = message
+    // total 26 + messageLength + levelLength bytes
+
+    data_packet_model_t *packet = create_packet_on_buffer();
+    packet->packetType = 4; // data packet
+    uint8_t *auth_token = get_auth_token();
+    memcpy(packet->authorizationToken, auth_token, 16);
+    packet->packetError = 0;
+    packet->dataSize = 26 + levelLength + messageLength;
+    
+    uint8_t packetFlag = 0b00001000;
+    memcpy(packet->data, &packetFlag, sizeof(uint8_t));
+    uint8_t dataType = 4;
+    memcpy(packet->data + 1, &dataType, sizeof(uint8_t));
+
+    uint64_t dataCount = 1;
+    memcpy(packet->data + 2, &dataCount, sizeof(uint64_t));
+    memcpy(packet->data + 10, &timeStamp, sizeof(uint64_t));
+    memcpy(packet->data + 18, &levelLength, sizeof(uint32_t));
+    memcpy(packet->data + 22, level, levelLength);
+    memcpy(packet->data + 22 + levelLength, &messageLength, sizeof(uint32_t));
+    memcpy(packet->data + 26 + levelLength, message, messageLength);
+
+    sign_packet_on_buffer();
+    return write_normalized_packet(packetLength);
 }

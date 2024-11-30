@@ -615,9 +615,9 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         {
                             var timeStamp = DateTimeOffset.FromUnixTimeSeconds(BitConverter.ToInt64(pureData, i)).UtcDateTime;
                             var status = BitConverter.ToUInt32(pureData, i + 8);
-                            var tempTarget = BitConverter.ToUInt32(pureData, i + 12);
-                            var phTarget = BitConverter.ToUInt32(pureData, i + 16);
-                            var rpmTarget = BitConverter.ToUInt32(pureData, i + 20);
+                            var tempTarget = BitConverter.ToDouble(pureData, i + 12);
+                            var phTarget = BitConverter.ToDouble(pureData, i + 20);
+                            var rpmTarget = BitConverter.ToDouble(pureData, i + 28);
 
                             var statusData = new DeviceStatusData()
                             {
