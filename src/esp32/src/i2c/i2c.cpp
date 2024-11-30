@@ -1,19 +1,14 @@
 #include <Wire.h>
 #include "./i2c.h"
+#include "../api_h/api.h"
+#include "time.h"
 
-// First bit signifies whether data is available in buffer for use
-// Second bit signifies whether an error occured during reading
-char i2c_flag = 0b00000000;
-char *i2c_get_flag()
-{
-    return &i2c_flag;
-}
-
-char i2c_data_buffer[I2C_BUFFER_SIZE];
-char *i2c_get_data_buffer()
+uint8_t i2c_data_buffer[I2C_BUFFER_SIZE];
+uint8_t *i2c_get_data_buffer()
 {
     return i2c_data_buffer;
 }
+
 
 void i2c_on_receive(int length)
 {
@@ -25,14 +20,11 @@ void i2c_on_receive(int length)
         i2c_data_buffer[i++] = data;
     }
 
-    if (i > 0)
+    if(i == 9)
     {
-        i2c_flag |= 0x01;
-    }
-
-    if (i != length)
-    {
-        i2c_flag |= 0x02;
+        uint8_t dataType = i2c_data_buffer[0];
+        double value = *((double*)i2c_data_buffer + 1);
+        send_value_to_server(dataType, time(), value);
     }
 }
 
