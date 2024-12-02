@@ -39,7 +39,7 @@ data_packet_model_t *structurize_packet()
     return packet;
 }
 
-void handle_data(uint8_t *data, uint32_t dataSize)
+void handle_data(uint8_t *data, uint32_t dataSize, uint8_t *packetIdentifier)
 {
     if (dataSize == 0)
     {
@@ -66,11 +66,13 @@ void handle_data(uint8_t *data, uint32_t dataSize)
         uint8_t exec_command = data[1];
         if (exec_command == 0xff) // start
         {
-            set_status(0);
+            set_status(1);
+            ack_server(packetIdentifier);
         }
         else if (exec_command == 0x00) // pause
         {
-            set_status(1);
+            set_status(2);
+            ack_server(packetIdentifier);
         }
         else if (exec_command == 0x01) // set target
         {
@@ -91,6 +93,7 @@ void handle_data(uint8_t *data, uint32_t dataSize)
             }
             i2c_write(data + 2, 9); // send full packet data to arduino
             set_preferences(prefs);
+            ack_server(packetIdentifier);
         }
         else if (exec_command == 0x02) // get status
         {
@@ -133,8 +136,7 @@ void handle_packet(data_packet_model_t *packet)
     }
     case 4: // data
     {
-        handle_data(packet->data, packet->dataSize);
-        ack_server(packet->packetIdentifier);
+        handle_data(packet->data, packet->dataSize, packet->packetIdentifier);
         break;
     }
     case 5: // error

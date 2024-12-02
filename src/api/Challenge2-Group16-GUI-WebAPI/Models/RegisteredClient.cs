@@ -10,6 +10,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
 
     public enum DeviceStatus
     {
+        NotReady,
         Operational,
         Paused,
     }
