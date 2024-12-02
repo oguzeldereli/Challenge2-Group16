@@ -107,6 +107,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
             if (_webSocketManagerService.GetBoundClient(socketId) != null)
             {
+                Console.WriteLine(DateTime.Now);
                 await _chainService.ExpectAck(packet.ChainIdentifier);
             }
         }

@@ -80,7 +80,7 @@ void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
         Serial.println("Received binary data");
         read_normalized_packet(payload, (uint16_t)length);
         data_packet_model_t *packet = structurize_packet();
-        // handle_packet(packet);
+        handle_packet(packet);
         break;
     }
     case WStype_PING:

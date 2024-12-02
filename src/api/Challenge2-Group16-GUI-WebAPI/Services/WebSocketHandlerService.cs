@@ -315,6 +315,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     continue;
                 }
 
+                Console.WriteLine(DateTime.Now);
                 await ParseAndHandlePacketAsync(socketId, packet);
             }
             while (type != WebSocketMessageType.Close);

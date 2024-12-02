@@ -14,10 +14,11 @@ void ack_server(uint8_t *chainIdentifier)
 {
     uint16_t length;
     uint8_t *packet = write_ack_normalized(chainIdentifier, &length);
-
     if (websocket_isConnected() && !is_auth_token_empty())
     {
+        Serial.println("Acking server");
         websocket_write_bin(packet, length);
+        Serial.println("Done");
     }
 }
 

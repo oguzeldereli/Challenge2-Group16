@@ -31,9 +31,9 @@ void read_normalized_packet(uint8_t *data, uint16_t length)
 data_packet_model_t *structurize_packet()
 {
     data_packet_model_t *packet = (data_packet_model_t *)read_packet_buffer;
-    memcpy(packet, read_normalized_packet_buffer, 60);                                                  // copy fixed parts
-    memcpy(packet + sizeof(data_packet_model_t), read_normalized_packet_buffer + 60, packet->dataSize); // copy data
-    packet->data = (uint8_t *)(packet + sizeof(data_packet_model_t));    
+    memcpy(read_packet_buffer, read_normalized_packet_buffer, 60);                                                  // copy fixed parts
+    memcpy(read_packet_buffer + sizeof(data_packet_model_t), read_normalized_packet_buffer + 60, packet->dataSize); // copy data
+    packet->data = (uint8_t *)(read_packet_buffer + sizeof(data_packet_model_t));    
     memcpy(packet->packetSignature, read_normalized_packet_buffer + 60 + packet->dataSize, 32);         // copy signature
     return packet;
 }
@@ -117,7 +117,6 @@ void handle_packet(data_packet_model_t *packet)
     }
     case 2: // auth
     {
-
         // store auth token
         store_auth_token(packet->data);
         ack_server(packet->packetIdentifier);
