@@ -5,7 +5,7 @@
 // Replace with your eduroam credentials
 char *ssid = "eduroam";
 char *USER = "zcabogu@ucl.ac.uk";
-char *PASS = "xxxxxxxxxxxx";
+char *PASS = "***REMOVED***";
 
 void setup()
 {

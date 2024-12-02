@@ -14,7 +14,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         public double TempTarget { get; set; }
         public double PhTarget { get; set; }
         public double RPMTarget { get; set; }
-
+            
         public DeviceStatusData()
         {
             Id = Guid.NewGuid().ToString();

@@ -31,7 +31,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
             if (_context.Clients.Any(c => c.Identifier.SequenceEqual(clientIdentifier)))
             {
-                return null;
+                return _context.Clients.FirstOrDefault(c => c.Identifier.SequenceEqual(clientIdentifier));
             }
 
             RegisteredClient? client = RegisteredClient.Create(clientIdentifier, type);
@@ -49,7 +49,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task<byte[]?> AuthorizeClientAsync(string socketId, byte[] clientIdentifier, byte[] clientSecret)
         {
-            if(clientIdentifier.Length != 16 || clientSecret.Length != 32)
+            if(clientIdentifier.Length != 32 || clientSecret.Length != 32)
             {
                 return null;
             }

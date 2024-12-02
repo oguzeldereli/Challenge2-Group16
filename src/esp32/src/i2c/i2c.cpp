@@ -24,7 +24,7 @@ void i2c_on_receive(int length)
     {
         uint8_t dataType = i2c_data_buffer[0];
         double value = *((double*)i2c_data_buffer + 1);
-        send_value_to_server(dataType, time(), value);
+        send_value_to_server(dataType, time(nullptr), value);
     }
 }
 

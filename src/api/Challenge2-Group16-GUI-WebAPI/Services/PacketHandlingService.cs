@@ -42,21 +42,33 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         {
             var packet = DataPacketModel.MalformedPacket();
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+
+            if(_webSocketManagerService.GetBoundClient(socketId) != null)
+            {
+                await _chainService.ExpectAck(packet.ChainIdentifier);
+            }
         }
 
         public async Task InvalidPacketResponse(string socketId)
         {
             var packet = DataPacketModel.InvalidPacket();
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+
+            if (_webSocketManagerService.GetBoundClient(socketId) != null)
+            {
+                await _chainService.ExpectAck(packet.ChainIdentifier);
+            }
         }
 
         public async Task InternalErrorResponse(string socketId)
         {
             var packet = DataPacketModel.InternalError();
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+
+            if (_webSocketManagerService.GetBoundClient(socketId) != null)
+            {
+                await _chainService.ExpectAck(packet.ChainIdentifier);
+            }
         }
 
         public async Task RegisterResponse(string socketId, RegisteredClient client, byte[] secret, byte[] signatureKey)
@@ -72,7 +84,11 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             packet.PacketSignature = packetSignature;
 
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+
+            if (_webSocketManagerService.GetBoundClient(socketId) != null)
+            {
+                await _chainService.ExpectAck(packet.ChainIdentifier);
+            }
         }
 
         public async Task AuthResponse(string socketId, RegisteredClient client, byte[] authToken)
@@ -88,7 +104,11 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             packet.PacketSignature = packetSignature;
 
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+
+            if (_webSocketManagerService.GetBoundClient(socketId) != null)
+            {
+                await _chainService.ExpectAck(packet.ChainIdentifier);
+            }
         }
 
         public async Task RevokeAuthResponse(string socketId, RegisteredClient client)
@@ -103,7 +123,11 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
             packet.PacketSignature = packetSignature;
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+
+            if (_webSocketManagerService.GetBoundClient(socketId) != null)
+            {
+                await _chainService.ExpectAck(packet.ChainIdentifier);
+            }
         }
 
         public async Task DataReturnResponse(string socketId, RegisteredClient client, byte[] data)
@@ -118,14 +142,22 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
             packet.PacketSignature = packetSignature;
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+
+            if (_webSocketManagerService.GetBoundClient(socketId) != null)
+            {
+                await _chainService.ExpectAck(packet.ChainIdentifier);
+            }
         }
 
         public async Task AckResponse(string socketId, byte[] packetIdentifier)
         {
             var packet = DataPacketModel.Ack(packetIdentifier);
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+
+            if (_webSocketManagerService.GetBoundClient(socketId) != null)
+            {
+                await _chainService.ExpectAck(packet.ChainIdentifier);
+            }
         }
 
 

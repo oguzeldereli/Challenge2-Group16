@@ -19,7 +19,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         private readonly WebSocketManagerService _webSocketManagerService;
         private readonly PacketHandlingService _packetHandlingService;
         private readonly ChainService _chainService;
-        private readonly ConcurrentDictionary<string, byte[]> _authorizedSockets = new();
         
 
         public WebSocketHandlerService(
@@ -114,7 +113,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
                 var temporaryAuthToken = await _registeredClientService.AuthorizeClientAsync(socketId, clientId, clientSecret);
                 if (temporaryAuthToken == null)
-                {
+                  {
                     await _packetHandlingService.InternalErrorResponse(socketId);
                     return;
                 }
@@ -127,7 +126,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 }
 
                 await _packetHandlingService.AuthResponse(socketId, registeredClient, temporaryAuthToken);
-                _authorizedSockets.TryAdd(socketId, temporaryAuthToken);
                 return;
             }
 
@@ -148,8 +146,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     return;
                 }
 
-                var authValidationResult = ValidateAuthTokenAndSocketId(socketId, packet.AuthorizationToken);
-                if (authValidationResult == false)
+                if (!_webSocketManagerService.IsClientBound(socketId, registeredClient))
                 {
                     await _packetHandlingService.InternalErrorResponse(socketId);
                     return;
@@ -160,8 +157,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     await _packetHandlingService.InternalErrorResponse(socketId);
                     return;
                 }
-
-                _authorizedSockets.TryRemove(socketId, out _);
 
                 await _packetHandlingService.RevokeAuthResponse(socketId, registeredClient);
                 return;
@@ -175,13 +170,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         {
             if (packet.PacketError == (uint)PacketError.None)
             {
-                var authValidationResult = ValidateAuthTokenAndSocketId(socketId, packet.AuthorizationToken);
-                if (authValidationResult == false)
-                {
-                    await _packetHandlingService.InvalidPacketResponse(socketId);
-                    return;
-                }
-
                 var decryptedData = _packetService.GetData(packet);
                 if (decryptedData == null)
                 {
@@ -193,6 +181,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 if (registeredClient == null)
                 {
                     await _packetHandlingService.InvalidPacketResponse(socketId);
+                    return;
+                }
+
+                if (!_webSocketManagerService.IsClientBound(socketId, registeredClient))
+                {
+                    await _packetHandlingService.InternalErrorResponse(socketId);
                     return;
                 }
 
@@ -208,17 +202,16 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         {
             if (packet.PacketError == (uint)PacketError.None)
             {
-                var authValidationResult = ValidateAuthTokenAndSocketId(socketId, packet.AuthorizationToken);
-                if (authValidationResult == false)
+                var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
+                if (registeredClient == null)
                 {
                     await _packetHandlingService.InvalidPacketResponse(socketId);
                     return;
                 }
 
-                var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
-                if (registeredClient == null)
+                if (!_webSocketManagerService.IsClientBound(socketId, registeredClient))
                 {
-                    await _packetHandlingService.InvalidPacketResponse(socketId);
+                    await _packetHandlingService.InternalErrorResponse(socketId);
                     return;
                 }
 
@@ -238,13 +231,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task ParseErrorPacketAsync(string socketId, DataPacketModel packet)
         {
-            var authValidationResult = ValidateAuthTokenAndSocketId(socketId, packet.AuthorizationToken);
-            if (authValidationResult == false)
-            {
-                await _packetHandlingService.InvalidPacketResponse(socketId);
-                return;
-            }
-
             var decryptedData = _packetService.GetData(packet);
             if (decryptedData == null)
             {
@@ -256,6 +242,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             if (registeredClient == null)
             {
                 await _packetHandlingService.InvalidPacketResponse(socketId);
+                return;
+            }
+
+            if (!_webSocketManagerService.IsClientBound(socketId, registeredClient))
+            {
+                await _packetHandlingService.InternalErrorResponse(socketId);
                 return;
             }
 
@@ -340,16 +332,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 offset += array.Length;
             }
             return combined;
-        }
-
-        private bool ValidateAuthTokenAndSocketId(string socketId, byte[] authToken)
-        {
-            if (!_authorizedSockets.TryGetValue(socketId, out var storedAuthToken))
-            {
-                return false;
-            }
-
-            return storedAuthToken.SequenceEqual(authToken);
         }
     }
 }

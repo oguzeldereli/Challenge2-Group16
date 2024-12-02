@@ -5,6 +5,7 @@
 #include "./connection.h"
 #include "../api_h/api.h"
 #include "../packets/packets.h"
+#include "../storage/storage.h"
 
 bool wifi_wait()
 {
@@ -49,37 +50,54 @@ void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     switch (type)
     {
     case WStype_DISCONNECTED:
+    {
         Serial.println("Disconnected from WebSocket server");
         break;
-
+    }
     case WStype_CONNECTED:
+    {
         Serial.println("Connected to WebSocket server");
-        register_client();
+        if(!is_registered())
+        {
+            Serial.println("Registering...");
+            register_client();
+        }
+        else
+        {
+            Serial.println("Authenticating...");
+            auth_client();
+        }
         break;
-
+    }
     case WStype_TEXT:
+    {
         Serial.print("Received message: ");
         Serial.println((char *)payload);
         break;
-
+    }
     case WStype_BIN:
+    {
         Serial.println("Received binary data");
         read_normalized_packet(payload, (uint16_t)length);
         data_packet_model_t *packet = structurize_packet();
-        handle_packet(packet);
+        // handle_packet(packet);
         break;
-
+    }
     case WStype_PING:
+    {
         Serial.println("Received ping");
         break;
-
+    }
     case WStype_PONG:
+    {
         Serial.println("Received pong");
         break;
-
+    }
     case WStype_ERROR:
+    {
         Serial.println("WebSocket error");
         break;
+    }
     }
 }
 
