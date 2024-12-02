@@ -24,22 +24,37 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
             if(typeof(T) == typeof(TempData) && data as TempData != null)
             {
+                _context.Entry(client)
+                    .Collection(b => b.TempData)
+                    .Load();
                 client.TempData.Add(data as TempData);
             }
             else if(typeof(T) == typeof(StirringData) && data as StirringData != null)
             {
+                _context.Entry(client)
+                    .Collection(b => b.StirringData)
+                    .Load();
                 client.StirringData.Add(data as StirringData);
             }
             else if(typeof(T) == typeof(pHData) && data as pHData != null)
             {
+                _context.Entry(client)
+                    .Collection(b => b.pHData)
+                    .Load();
                 client.pHData.Add(data as pHData);
             }
             else if(typeof(T) == typeof(DeviceStatusData) && data as DeviceStatusData != null)
             {
+                _context.Entry(client)
+                    .Collection(b => b.DeviceStatusData)
+                    .Load();
                 client.DeviceStatusData.Add(data as DeviceStatusData);
             }
             else if(typeof(T) == typeof(LogData) && data as LogData != null)
             {
+                _context.Entry(client)
+                    .Collection(b => b.ErrorData)
+                    .Load();
                 client.ErrorData.Add(data as LogData);
             }
             else

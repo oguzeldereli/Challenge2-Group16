@@ -16,8 +16,7 @@ data_packet_model_t *create_packet_on_buffer()
     memset(write_packet_buffer, 0, MAXIMUM_PACKET_SIZE);
     data_packet_model_t *packet = (data_packet_model_t *)write_packet_buffer;
     memcpy(packet->signature, valid_packet_signature, 8);
-    time_t now = time(NULL);
-    packet->sentAt, (unsigned long)now;
+    packet->sentAt = getTime();
     fill_random_array(packet->packetIdentifier, 16);
     memset(packet->authorizationToken, 0, 16);
     packet->packetType = 0;
