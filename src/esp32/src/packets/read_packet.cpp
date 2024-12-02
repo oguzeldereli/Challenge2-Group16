@@ -2,6 +2,7 @@
 #include "../cryptography/crypt.h"
 #include "../storage/storage.h"
 #include "../api_h/api.h"
+#include "../i2c/i2c.h"
 #include <Arduino.h>
 #include <cstring>
 #include "time.h"
@@ -33,14 +34,14 @@ data_packet_model_t *structurize_packet()
     data_packet_model_t *packet = (data_packet_model_t *)read_packet_buffer;
     memcpy(read_packet_buffer, read_normalized_packet_buffer, 60);                                                  // copy fixed parts
     memcpy(read_packet_buffer + sizeof(data_packet_model_t), read_normalized_packet_buffer + 60, packet->dataSize); // copy data
-    packet->data = (uint8_t *)(read_packet_buffer + sizeof(data_packet_model_t));    
-    memcpy(packet->packetSignature, read_normalized_packet_buffer + 60 + packet->dataSize, 32);         // copy signature
+    packet->data = (uint8_t *)(read_packet_buffer + sizeof(data_packet_model_t));
+    memcpy(packet->packetSignature, read_normalized_packet_buffer + 60 + packet->dataSize, 32); // copy signature
     return packet;
 }
 
 void handle_data(uint8_t *data, uint32_t dataSize)
 {
-    if(dataSize == 0)
+    if (dataSize == 0)
     {
         return;
     }
@@ -50,52 +51,53 @@ void handle_data(uint8_t *data, uint32_t dataSize)
     uint8_t dataType = (flag & 0b00000110) >> 1;
     uint8_t command = (flag & 0b00111000) >> 3;
 
-    if(dataType != 0 || dataType != 0)
+    if (dataType != 0 || dataType != 0)
     {
         return;
     }
 
-    if(command == 2) // command
+    if (command == 2) // command
     {
-        if(dataSize < 2)
+        if (dataSize < 2)
         {
             return;
         }
 
         uint8_t exec_command = data[1];
-        if(exec_command == 0xff) // start
+        if (exec_command == 0xff) // start
         {
-            set_status(0); 
+            set_status(0);
         }
-        else if(exec_command == 0x00) // pause
+        else if (exec_command == 0x00) // pause
         {
-            set_status(1); 
+            set_status(1);
         }
-        else if(exec_command == 0x01) // set target
+        else if (exec_command == 0x01) // set target
         {
             preferences_t *prefs = get_preferences();
             uint8_t dataType = data[2]; // 0 for temp, 1 for ph, 2 for rpm
-            double value = *((double*)data + 3);
-            if(dataType == 0)
+            double value = *((double *)data + 3);
+            if (dataType == 0)
             {
                 prefs->tempTarget = value;
             }
-            else if(dataType == 1)
+            else if (dataType == 1)
             {
                 prefs->phTarget = value;
             }
-            else if(dataType == 2)
+            else if (dataType == 2)
             {
                 prefs->rpmTarget = value;
             }
+            i2c_write(data + 2, 9); // send full packet data to arduino
             set_preferences(prefs);
         }
-        else if(exec_command == 0x02) // get status
+        else if (exec_command == 0x02) // get status
         {
             send_status_to_server(getTime());
         }
     }
-    
+
     return; // we dont support anything but commands
 }
 
@@ -137,18 +139,18 @@ void handle_packet(data_packet_model_t *packet)
     }
     case 5: // error
     {
-        if(Serial)
+        if (Serial)
         {
             Serial.print("Received Error: ");
-            if(packet->packetError == 1)
+            if (packet->packetError == 1)
             {
                 Serial.println("Malformed Packet");
             }
-            else if(packet->packetError == 2)
+            else if (packet->packetError == 2)
             {
                 Serial.println("Invalid Packet");
             }
-            else if(packet->packetError == 3)
+            else if (packet->packetError == 3)
             {
                 Serial.println("Internal Error");
             }
