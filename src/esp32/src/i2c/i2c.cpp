@@ -40,6 +40,8 @@ void i2c_on_receive(int length)
             i2c_set_is_connected(true);
             uint8_t ack[3] = {'A', 'C', 'K'};
             i2c_write(ack, 3); // ack the connection
+            set_status(1);
+            send_status_to_server(getTime());
 
             preferences_t *prefs = get_preferences();
             uint8_t data[9];
