@@ -2,6 +2,8 @@
 #include "../cryptography/crypt.h"
 #include "../storage/storage.h"
 #include "../api_h/api.h"
+#include <Arduino.h>
+#include <cstring>
 #include "time.h"
 
 uint8_t read_packet_buffer[MAXIMUM_PACKET_SIZE];
@@ -31,6 +33,7 @@ data_packet_model_t *structurize_packet()
     data_packet_model_t *packet = (data_packet_model_t *)read_packet_buffer;
     memcpy(packet, read_normalized_packet_buffer, 60);                                                  // copy fixed parts
     memcpy(packet + sizeof(data_packet_model_t), read_normalized_packet_buffer + 60, packet->dataSize); // copy data
+    packet->data = (uint8_t *)(packet + sizeof(data_packet_model_t));    
     memcpy(packet->packetSignature, read_normalized_packet_buffer + 60 + packet->dataSize, 32);         // copy signature
     return packet;
 }
@@ -89,7 +92,7 @@ void handle_data(uint8_t *data, uint32_t dataSize)
         }
         else if(exec_command == 0x02) // get status
         {
-            send_status_to_server((uint64_t)time());
+            send_status_to_server(getTime());
         }
     }
     
@@ -104,31 +107,56 @@ void handle_packet(data_packet_model_t *packet)
         // ignore the acks for now
         break;
     case 1: // register
+    {
         // store secret and signature key
         preferences_t *prefs = get_preferences();
         memcpy(prefs->secret, packet->data, 32);
         memcpy(prefs->signatureKey, packet->data + 32, 32);
         set_preferences(prefs);
-        ack_server();
         break;
+    }
     case 2: // auth
+    {
+
         // store auth token
         store_auth_token(packet->data);
-        ack_server();
+        ack_server(packet->packetIdentifier);
         break;
+    }
     case 3: // revoke auth
+    {
         // server will never send a revoke auth packet
         // just ignore it
-        ack_server();
+        ack_server(packet->packetIdentifier);
         break;
+    }
     case 4: // data
+    {
         handle_data(packet->data, packet->dataSize);
-        ack_server();
+        ack_server(packet->packetIdentifier);
         break;
+    }
     case 5: // error
-        // ignore the errors for now
-        ack_server();
+    {
+        if(Serial)
+        {
+            Serial.print("Received Error: ");
+            if(packet->packetError == 1)
+            {
+                Serial.println("Malformed Packet");
+            }
+            else if(packet->packetError == 2)
+            {
+                Serial.println("Invalid Packet");
+            }
+            else if(packet->packetError == 3)
+            {
+                Serial.println("Internal Error");
+            }
+        }
+        ack_server(packet->packetIdentifier);
         break;
+    }
     default:
         break;
     }

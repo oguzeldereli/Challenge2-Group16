@@ -46,7 +46,7 @@ public class WebSocketManagerService
 
     public async Task BindClient(string socketId, RegisteredClient client)
     {
-        if (!_context.Users.Any(x => x.Id == client.Id))
+        if (!_context.Clients.Any(x => x.Id == client.Id))
         {
             return;
         }

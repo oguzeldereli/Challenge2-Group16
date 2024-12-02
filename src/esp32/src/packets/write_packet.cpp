@@ -2,7 +2,9 @@
 #include "../cryptography/crypt.h"
 #include "../storage/storage.h"
 #include "../connection/connection.h"
+#include "../api_h/api.h"
 #include <cstring>
+#include <Arduino.h>
 #include "time.h"
 
 uint8_t write_packet_buffer[MAXIMUM_PACKET_SIZE + 8]; // +8 because there is a single pointer allocation extra
@@ -115,7 +117,7 @@ uint8_t *write_ack_normalized(uint8_t *chainIdentifier, uint16_t *packetLength)
     packet->dataSize = 0;
     set_packet_identifier_on_buffer(chainIdentifier);
     sign_packet_on_buffer();
-    return write_normalized_packet(dataLength);
+    return write_normalized_packet(packetLength);
 }
 
 uint8_t *write_register_request_normalized(uint16_t *packetLength)
@@ -144,8 +146,8 @@ uint8_t *write_auth_request_normalized(uint16_t *packetLength)
     uint8_t data[64];
     preferences_t *prefs = get_preferences();
     memset(data, 0, 64);
-    memcpy(data, prefs->identifier, 32);  // client identifier (hash of mac address)
-    memcpy(data + 32, prefs->secret, 32); // client identifier (hash of mac address)
+    memcpy(data, prefs->identifier, 32);  // client identifier
+    memcpy(data + 32, prefs->secret, 32); // client secret
     set_packet_data_on_buffer(data, 64);
     memset(packet->packetSignature, 0, 32);
     return write_normalized_packet(packetLength);

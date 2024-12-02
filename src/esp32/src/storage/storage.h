@@ -22,5 +22,6 @@ typedef struct
 
 void set_preferences(preferences_t *prefs);
 preferences_t *get_preferences();
+bool is_registered();
 
 #endif

@@ -23,14 +23,14 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public bool IsPacketAuthorized(DataPacketModel packet)
         {
-            var client = _context.Clients.FirstOrDefault(c => c.Identifier.SequenceEqual(packet.AuthorizationToken));
+            var client = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
             return client != null;
         }
 
         public bool IsPacketSignatureValid(DataPacketModel packet)
         {
             // get registered client
-            var registeredClient = _context.Clients.FirstOrDefault(c => c.Identifier.SequenceEqual(packet.AuthorizationToken));
+            var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
             if (registeredClient == null)
             {
                 return false;
@@ -65,8 +65,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         public bool ValidatePacket(DataPacketModel packet)
         {
             return IsPacketValid(packet) && 
-                (IsAuthRelatedPacket(packet) || IsPacketAuthorized(packet)) &&
-                (IsRegisterPacket(packet) || IsPacketSignatureValid(packet));
+                (IsBeforeAuthPacket(packet) || (IsPacketAuthorized(packet) && IsPacketSignatureValid(packet)));
         }
 
         public byte[]? GetData(DataPacketModel packet)
@@ -83,20 +82,20 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             return data;
         }
 
-        private bool IsAuthRelatedPacket(DataPacketModel packet)
+        private bool IsAfterAuthPacket(DataPacketModel packet)
         {
-            return (PacketType)packet.PacketType == PacketType.Auth || (PacketType)packet.PacketType == PacketType.Register;
+            return !IsBeforeAuthPacket(packet);
         }
 
-        private bool IsRegisterPacket(DataPacketModel packet)
+        private bool IsBeforeAuthPacket(DataPacketModel packet)
         {
-            return (PacketType)packet.PacketType == PacketType.Register;
+            return (PacketType)packet.PacketType == PacketType.Auth || (PacketType)packet.PacketType == PacketType.Register;
         }
 
         private byte[]? GetPacketSignature(DataPacketModel packet)
         {
             // get registered client
-            var registeredClient = _context.Clients.FirstOrDefault(c => c.Identifier.SequenceEqual(packet.AuthorizationToken));
+            var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
             if (registeredClient == null)
             {
                 return null;

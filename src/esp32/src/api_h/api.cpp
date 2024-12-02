@@ -1,14 +1,21 @@
 #include "./api.h"
 #include "../packets/packets.h"
 #include "../connection/connection.h"
+#include <Arduino.h>
+#include "time.h"
 #include <cstring>
 
-void ack_server()
+uint64_t getTime() 
+{
+  return (uint64_t)time(nullptr);
+}
+
+void ack_server(uint8_t *chainIdentifier)
 {
     uint16_t length;
-    uint8_t *packet = write_ack_normalized(&length);
+    uint8_t *packet = write_ack_normalized(chainIdentifier, &length);
 
-    if (websocket_isConnected())
+    if (websocket_isConnected() && !is_auth_token_empty())
     {
         websocket_write_bin(packet, length);
     }
@@ -40,8 +47,8 @@ void revoke_auth_client()
 {
     uint16_t length;
     uint8_t *packet = write_revoke_auth_request_normalized(&length);
-    memset(auth_token, 0, 16);
-    if (websocket_isConnected())
+    memset(get_auth_token(), 0, 16);
+    if (websocket_isConnected() && !is_auth_token_empty())
     {
         websocket_write_bin(packet, length);
     }
@@ -52,7 +59,7 @@ void send_data_to_server(uint8_t *data, uint32_t dataLength)
     uint16_t length;
     uint8_t *packet = write_data_packet_normalized(data, dataLength, &length);
 
-    if (websocket_isConnected())
+    if (websocket_isConnected() && !is_auth_token_empty())
     {
         websocket_write_bin(packet, length);
     }
@@ -63,7 +70,7 @@ void send_value_to_server(uint8_t datatType, uint64_t timeStamp, double value)
     uint16_t length;
     uint8_t *packet = write_data_value_packet_normalized(datatType, timeStamp, value, &length);
 
-    if (websocket_isConnected())
+    if (websocket_isConnected() && !is_auth_token_empty())
     {
         websocket_write_bin(packet, length);
     }
@@ -74,7 +81,7 @@ void send_status_to_server(uint64_t timeStamp)
     uint16_t length;
     uint8_t *packet = write_device_status_packet_normalized(timeStamp, get_status(), &length);
 
-    if (websocket_isConnected())
+    if (websocket_isConnected() && !is_auth_token_empty())
     {
         websocket_write_bin(packet, length);
     }
@@ -85,7 +92,7 @@ void send_log_to_server(uint64_t timeStamp, char *level, uint32_t levelLength, c
     uint16_t length;
     uint8_t *packet = write_log_packet_normalized(timeStamp, level, levelLength, message, messageLength, &length);
 
-    if (websocket_isConnected())
+    if (websocket_isConnected() && !is_auth_token_empty())
     {
         websocket_write_bin(packet, length);
     }

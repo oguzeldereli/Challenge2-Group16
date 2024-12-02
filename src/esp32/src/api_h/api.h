@@ -1,8 +1,12 @@
 #ifndef __API_H__
 #define __API_H__
 
-void ack_server();
+#include <cstdint>
+
+uint64_t getTime();
+void ack_server(uint8_t *chainIdentifier);
 void register_client();
+void auth_client();
 void revoke_auth_client();
 void revoke_auth();
 void send_data_to_server(uint8_t *data, uint32_t dataLength);
