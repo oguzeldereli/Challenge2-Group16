@@ -71,7 +71,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         public byte[]? GetData(DataPacketModel packet)
         {
             // get registered client
-            var registeredClient = _context.Clients.FirstOrDefault(c => c.Identifier.SequenceEqual(packet.AuthorizationToken));
+            var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
             if (registeredClient == null)
             {
                 return null;

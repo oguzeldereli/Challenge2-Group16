@@ -14,7 +14,7 @@ uint8_t *i2c_get_data_buffer()
 bool is_connection_established = false;
 bool i2c_is_connected()
 {
-    return is_connection_established();
+    return is_connection_established;
 }
 
 void i2c_set_is_connected(bool set)
@@ -35,7 +35,7 @@ void i2c_on_receive(int length)
     if (i == 1)
     {
         uint8_t control = i2c_data_buffer[0];
-        if (cotrol == 0xff)
+        if (control == 0xff)
         {
             i2c_set_is_connected(true);
             uint8_t ack[3] = {'A', 'C', 'K'};
@@ -90,7 +90,7 @@ void i2c_on_receive(int length)
     {
         uint8_t dataType = i2c_data_buffer[0];
         double value = *((double *)i2c_data_buffer + 1);
-        send_value_to_server(dataType, time(nullptr), value);
+        send_value_to_server(dataType, getTime(), value);
     }
 }
 

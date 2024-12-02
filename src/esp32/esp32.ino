@@ -1,5 +1,6 @@
 #include "src/connection/connection.h"
 #include "src/i2c/i2c.h"
+#include "src/api_h/api.h"
 #include <HTTPClient.h>
 
 // Replace with your eduroam credentials
@@ -30,6 +31,7 @@ void setup()
     Serial.println("Initializing websocket connection with API...");
     websocket_begin(); // initialize api connection
     Serial.println("Done.");
+
 }
 
 void loop()

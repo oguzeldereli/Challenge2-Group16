@@ -7,7 +7,13 @@
 
 uint64_t getTime() 
 {
-  return (uint64_t)time(nullptr);
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo)) {
+        return 0;
+    }
+    
+    uint64_t epochTime = mktime(&timeinfo);
+    return epochTime;
 }
 
 void ack_server(uint8_t *chainIdentifier)
