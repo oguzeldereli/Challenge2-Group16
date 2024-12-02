@@ -19,7 +19,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         private readonly WebSocketManagerService _webSocketManagerService;
         private readonly PacketHandlingService _packetHandlingService;
         private readonly ChainService _chainService;
-        
+
 
         public WebSocketHandlerService(
             ApplicationDbContext context,
@@ -113,7 +113,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
                 var temporaryAuthToken = await _registeredClientService.AuthorizeClientAsync(socketId, clientId, clientSecret);
                 if (temporaryAuthToken == null)
-                  {
+                {
                     await _packetHandlingService.InternalErrorResponse(socketId);
                     return;
                 }
@@ -308,15 +308,20 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             do
             {
                 (type, var message) = await ReceiveAsync(socket);
-                var packet = DataPacketModel.Create(message);
-                if (packet == null)
-                {
-                    await _packetHandlingService.MalformedPacketResponse(socketId);
-                    continue;
-                }
 
-                Console.WriteLine(DateTime.Now);
-                await ParseAndHandlePacketAsync(socketId, packet);
+                _ = Task.Run(async () =>
+                {
+                    var packet = DataPacketModel.Create(message);
+                    if (packet == null)
+                    {
+                        await _packetHandlingService.MalformedPacketResponse(socketId);
+                    }
+                    else
+                    {
+                        Console.WriteLine(DateTime.Now);
+                        await ParseAndHandlePacketAsync(socketId, packet);
+                    }
+                });
             }
             while (type != WebSocketMessageType.Close);
 
