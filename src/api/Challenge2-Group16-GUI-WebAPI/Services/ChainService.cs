@@ -6,9 +6,10 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
     {
         private readonly ConcurrentDictionary<byte[], TaskCompletionSource<object>> _expectedResponseChains = new();
 
-        public TaskCompletionSource<object> GetExpectedResponseChain(byte[] chainIdentifier)
+        public TaskCompletionSource<object>? GetExpectedResponseChain(byte[] chainIdentifier)
         {
-            return _expectedResponseChains[chainIdentifier];
+            _expectedResponseChains.TryGetValue(chainIdentifier, out var response);
+            return response;
         }
 
         public async Task<T?> Expect<T>(byte[] chainIdentifier) where T : class
@@ -45,7 +46,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 return default;
             }
 
-            var completedTask = await AwaitResponse(chainIdentifier, TimeSpan.FromSeconds(10));
+            var completedTask = await AwaitResponse(chainIdentifier, TimeSpan.FromSeconds(5));
             if (completedTask == tcs.Task)
             {
                 // Successfully received a response

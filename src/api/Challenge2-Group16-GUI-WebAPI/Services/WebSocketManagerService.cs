@@ -74,7 +74,7 @@ public class WebSocketManagerService
 
     public async Task BindClient(WebSocket socket, RegisteredClient client)
     {
-        if(!_context.Users.Any(x => x.Id == client.Id))
+        if(!_context.Clients.Any(x => x.Id == client.Id))
         {
             return;
         }
@@ -101,7 +101,7 @@ public class WebSocketManagerService
 
     public async Task UnbindClient(RegisteredClient client)
     {
-        if (!_context.Users.Any(x => x.Id == client.Id))
+        if (!_context.Clients.Any(x => x.Id == client.Id))
         {
             return;
         }
@@ -123,7 +123,7 @@ public class WebSocketManagerService
 
     public bool IsClientBound(WebSocket socket, RegisteredClient client)
     {
-        if (!_context.Users.Any(x => x.Id == client.Id))
+        if (!_context.Clients.Any(x => x.Id == client.Id))
         {
             return false;
         }
@@ -139,7 +139,7 @@ public class WebSocketManagerService
 
     public bool IsClientBound(string socketId, RegisteredClient client)
     {
-        if (!_context.Users.Any(x => x.Id == client.Id))
+        if (!_context.Clients.Any(x => x.Id == client.Id))
         {
             return false;
         }
