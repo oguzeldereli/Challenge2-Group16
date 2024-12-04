@@ -88,7 +88,7 @@ function App() {
         setDevices(getRegisteredAndConnectedDevices());
         await startSSEConnection(handleDataPacket, handleErrorPacket, handleDevicePacket);
       }
-
+      console.log(devices);
       setAppStart();
   }, []);
 

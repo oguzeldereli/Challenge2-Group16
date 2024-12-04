@@ -52,6 +52,9 @@ void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     case WStype_DISCONNECTED:
     {
         Serial.println("Disconnected from WebSocket server");
+        webSocket.disconnect(); // Ensure proper disconnection
+        delay(1000);            // Optional: Wait before attempting to reconnect
+        websocket_begin();      // Re-establish connection
         break;
     }
     case WStype_CONNECTED:
@@ -95,7 +98,11 @@ void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     }
     case WStype_ERROR:
     {
+        
         Serial.println("WebSocket error");
+        webSocket.disconnect(); // Cleanup any stale state
+        delay(1000);            // Optional delay before retrying
+        websocket_begin();      // Attempt to reconnect
         break;
     }
     }
