@@ -101,7 +101,10 @@ public class Program
         app.UseCors(MyAllowSpecificOrigins);
         app.UseAuthentication();
         app.UseAuthorization();
-        app.UseWebSockets();
+        app.UseWebSockets(options: new WebSocketOptions
+        {
+            KeepAliveInterval = TimeSpan.FromSeconds(5)
+        });
         app.UseWebSocketMiddleware();
         app.MapControllers();
 

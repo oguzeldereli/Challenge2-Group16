@@ -74,8 +74,19 @@ void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     }
     case WStype_TEXT:
     {
-        Serial.print("Received message: ");
-        Serial.println((char *)payload);
+        if(length < 4)
+            break;
+
+        char *ping_msg = "PING";
+        if(memcmp((char *)payload, "PING", 4) == 0)
+        {
+            websocket_write_txt("PONG");
+        }
+        else
+        {
+            Serial.print("Received message: ");
+            Serial.println((char *)payload);
+        }
         break;
     }
     case WStype_BIN:
@@ -88,17 +99,16 @@ void onWebSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     }
     case WStype_PING:
     {
-        Serial.println("Received ping");
+        // Serial.println("Received ping");
         break;
     }
     case WStype_PONG:
     {
-        Serial.println("Received pong");
+        // Serial.println("Received pong");
         break;
     }
     case WStype_ERROR:
     {
-        
         Serial.println("WebSocket error");
         webSocket.disconnect(); // Cleanup any stale state
         delay(1000);            // Optional delay before retrying
@@ -122,6 +132,11 @@ void websocket_begin()
 void websocket_write_bin(uint8_t *data, uint16_t length)
 {
     webSocket.sendBIN(data, length);
+}
+
+void websocket_write_txt(char *data)
+{
+    webSocket.sendTXT(data);
 }
 
 void websocket_keepalive()

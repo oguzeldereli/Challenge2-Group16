@@ -85,10 +85,10 @@ function App() {
 
       async function setAppStart() 
       { 
-        setDevices(getRegisteredAndConnectedDevices());
+        setDevices(await getRegisteredAndConnectedDevices());
         await startSSEConnection(handleDataPacket, handleErrorPacket, handleDevicePacket);
       }
-      console.log(devices);
+
       setAppStart();
   }, []);
 

@@ -8,6 +8,8 @@ char *ssid = "eduroam";
 char *USER = "zcabogu@ucl.ac.uk";
 char *PASS = "xxxxxxxxxx";
 
+
+
 void setup()
 {
     Serial.begin(115200); // initialize serial connection
@@ -16,7 +18,7 @@ void setup()
     i2c_init_listener(); // initialize arduino connection
     Serial.println("Done.");
 
-    bool connected = false;
+    bool connected = true;
     do
     {
         Serial.println("Attempting WiFi connection...");
@@ -29,12 +31,25 @@ void setup()
     Serial.println("Done.");
 
     Serial.println("Initializing websocket connection with API...");
-    websocket_begin(); // initialize api connection
+    // websocket_begin(); // initialize api connection
     Serial.println("Done.");
-
 }
 
 void loop()
 {
-    websocket_keepalive();
+    // websocket_keepalive();
+
+    unsigned long currentMillis = millis();
+    if (currentMillis - previousMillis >= interval) 
+    {
+        previousMillis = currentMillis;
+        
+        int len =  i2c_request(9); // constantly temp data
+        handle_response(len);
+        int len =  i2c_request(9); // constantly ph data
+        handle_response(len);
+        int len =  i2c_request(9); // constantly rpm data
+        handle_response(len);
+    }
+
 }

@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 
 namespace Challenge2_Group16_GUI_WebAPI.Services
 {
@@ -13,11 +14,19 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
     {
         private readonly ConcurrentDictionary<Guid, HttpResponse> _sseClients = new();
 
-        public Guid AddClient(HttpResponse response)
+        public async Task<Guid> AddClient(HttpResponse response)
         {
             Guid guid = Guid.NewGuid();
-            _sseClients.TryAdd(guid, response);
+            response.ContentType = "text/event-stream";
+            response.Headers["Cache-Control"] = "no-cache";
+            if (response.HttpContext.Request.Protocol == "HTTP/1.1")
+            {
+                response.Headers["Connection"] = "keep-alive";
+            }
+            await response.Body.FlushAsync();
 
+            _sseClients.TryAdd(guid, response);
+                
             return guid;
         }
 
@@ -28,23 +37,39 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task PublishAsync(string eventType, string data)
         {
-            foreach (var client in _sseClients.Values)
+            foreach (var kvp in _sseClients)
             {
-                await client.WriteAsync($"event: {eventType}\n");
-                await client.WriteAsync($"data: {data}\n\n");
-                await client.Body.FlushAsync();
+                var client = kvp.Value;
+                try
+                {
+                    await client.WriteAsync($"event: {eventType}\n");
+                    await client.WriteAsync($"data: {data}\n\n");
+                    await client.Body.FlushAsync();
+                }
+                catch (Exception)
+                {
+                    _sseClients.TryRemove(kvp.Key, out _);
+                }
             }
         }
 
         public async Task PublishAsJsonAsync(string eventType, object data)
         {
-            foreach (var client in _sseClients.Values)
+            foreach (var kvp in _sseClients)
             {
-                await client.WriteAsync($"event: {eventType}\n");
-                await client.WriteAsync($"data: ");
-                await client.WriteAsJsonAsync(data);
-                await client.WriteAsync($"\n\n");
-                await client.Body.FlushAsync();
+                var client = kvp.Value;
+                try
+                {
+                    await client.WriteAsync($"event: {eventType}\n");
+                    await client.WriteAsync($"data: ");
+                    await client.WriteAsync(JsonSerializer.Serialize(data));
+                    await client.WriteAsync($"\n\n");
+                    await client.Body.FlushAsync();
+                }
+                catch (Exception)
+                {
+                    _sseClients.TryRemove(kvp.Key, out _);
+                }
             }
         }
     }

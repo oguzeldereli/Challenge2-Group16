@@ -46,40 +46,29 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[4096]);
             WebSocketReceiveResult result = null;
 
-            try
+            using (var ms = new MemoryStream())
             {
-                using (var ms = new MemoryStream())
+                do
                 {
-                    do
+                    result = await socket.ReceiveAsync(buffer, CancellationToken.None);
+
+                    if (result.CloseStatus != null)
                     {
-                        result = await socket.ReceiveAsync(buffer, CancellationToken.None);
+                        return (WebSocketMessageType.Close, new byte[0]);
+                    }
 
-                        if (result.MessageType == WebSocketMessageType.Close)
-                        {
-                            await socket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
-                            return (result.MessageType, null);
-                        }
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        return (WebSocketMessageType.Close, new byte[0]);
+                    }
 
-                        ms.Write(buffer.Array, buffer.Offset, result.Count);
+                    ms.Write(buffer.Array, buffer.Offset, result.Count);
 
-                    } while (!result.EndOfMessage);
+                } while (!result.EndOfMessage);
 
-                    ms.Seek(0, SeekOrigin.Begin);
+                ms.Seek(0, SeekOrigin.Begin);
 
-                    return (result.MessageType, ms.ToArray());
-                }
-            }
-            catch (WebSocketException ex)
-            {
-                // Log the exception and return a message type indicating the error
-                Console.WriteLine($"WebSocketException: {ex.Message}");
-                return (WebSocketMessageType.Close, new byte[0]);
-            }
-            catch (Exception ex)
-            {
-                // Handle other exceptions
-                Console.WriteLine($"Exception: {ex.Message}");
-                return (WebSocketMessageType.Close, new byte[0]);
+                return (result.MessageType, ms.ToArray());
             }
         }
 
@@ -322,67 +311,104 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             return;
         }
 
-        public async Task HandleAsync(WebSocket socket)
+        private DateTime LastPongTime { get; set; } = DateTime.UtcNow;
+        public async Task HandleAsync(WebSocket socket, string socketId)
         {
-            var socketId = Guid.NewGuid().ToString();
             try
             {
-                _webSocketManagerService.AddSocket(socketId, socket);
-            
-                WebSocketMessageType type = WebSocketMessageType.Close;
-
-                do
+                WebSocketMessageType type;
+                while (socket.State == WebSocketState.Open)
                 {
                     (type, var message) = await ReceiveAsync(socket);
                     if (type == WebSocketMessageType.Close)
                     {
-                        break;
+                        return; // terminate connection
                     }
-
-                    _ = Task.Run(async () =>
+                    
+                    if (type == WebSocketMessageType.Text && message.SequenceEqual(Encoding.UTF8.GetBytes("PONG")))
                     {
-                        try
+                        LastPongTime = DateTime.UtcNow;
+                        // Console.WriteLine("pong");
+                    }
+                    else if (type == WebSocketMessageType.Text && message.SequenceEqual(Encoding.UTF8.GetBytes("PING")))
+                    {
+                        var buffer = Encoding.UTF8.GetBytes("PONG");
+                        await socket.SendAsync(
+                            new ArraySegment<byte>(buffer),
+                            WebSocketMessageType.Text,
+                            true,
+                            CancellationToken.None);
+                    }
+                    else
+                    {
+
+                        _ = Task.Run(async () =>
                         {
-                            var packet = DataPacketModel.Create(message);
-                            if (packet == null)
+                            try
                             {
-                                await _packetHandlingService.MalformedPacketResponse(socketId);
+                                var packet = DataPacketModel.Create(message);
+                                if (packet == null)
+                                {
+                                    await _packetHandlingService.MalformedPacketResponse(socketId);
+                                }
+                                else
+                                {
+                                    await ParseAndHandlePacketAsync(socketId, packet);
+                                }
                             }
-                            else
+                            catch (Exception ex)
                             {
-                                await ParseAndHandlePacketAsync(socketId, packet);
+                                Console.WriteLine($"Error while processing packet: {ex.Message}");
+                                Console.WriteLine($"Socket: {socketId}, Bound user: {_webSocketManagerService.GetBoundClient(socketId)?.Id ?? ""}");
+                                await _webSocketManagerService.RemoveSocketAsync(socketId);
+                                return;
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error while processing packet: {ex.Message}");
-                        }
-                    });
+                        });
+                    }
                 }
-                while (type != WebSocketMessageType.Close && socket.State == WebSocketState.Open);
             }
             catch(Exception ex)
             {
                 Console.WriteLine($"Fatal error in WebSocket handler for socket {socketId}: {ex.Message}");
-            
-            }
-            finally
-            {
                 await _webSocketManagerService.RemoveSocketAsync(socketId);
+                return;
+            }
+        }
 
-                if (socket.State == WebSocketState.Open || socket.State == WebSocketState.CloseReceived || socket.State == WebSocketState.CloseSent)
+        private const int PingInterval = 5000; // 1 second
+        private const int TimeoutThreshold = 10000; // 5 seconds
+        public async Task SendPing(WebSocket webSocket)
+        {
+            while (webSocket.State == WebSocketState.Open)
+            {
+                try
                 {
-                    try
+                    var currentTime = DateTime.UtcNow;
+
+                    if ((currentTime - LastPongTime).TotalMilliseconds > TimeoutThreshold)
                     {
-                        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", CancellationToken.None);
+                        Console.WriteLine("Connection timeout. Closing WebSocket.");
+                        return;
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error closing WebSocket for socket {socketId}: {ex.Message}");
-                    }
+
+                    // Send a ping message
+                    var buffer = Encoding.UTF8.GetBytes("PING");
+                    // Console.WriteLine("ping");
+                    await webSocket.SendAsync(
+                        new ArraySegment<byte>(buffer),
+                        WebSocketMessageType.Text,
+                        true,
+                        CancellationToken.None
+                    );
+
+                    await Task.Delay(PingInterval);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error sending ping: {ex.Message}");
+                    break;
                 }
             }
-            
         }
 
         private byte[] CombineByteArrays(params byte[][] arrays)
