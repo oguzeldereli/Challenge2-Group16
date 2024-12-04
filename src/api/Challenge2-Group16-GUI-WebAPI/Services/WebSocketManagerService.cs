@@ -2,6 +2,7 @@
 using Challenge2_Group16_GUI_WebAPI.Models;
 using Challenge2_Group16_GUI_WebAPI.Services;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Net.WebSockets;
@@ -9,16 +10,16 @@ using System.Text;
 
 public class WebSocketManagerService
 {
-    private readonly ApplicationDbContext _context;
-    private readonly ConcurrentDictionary<string, (WebSocket, RegisteredClient?)> _sockets = new();
+    private readonly IServiceScopeFactory scopeFactory;
+    private readonly ConcurrentDictionary<string, (WebSocket, string?)> _sockets = new();
     private readonly SseClientService _sseClientService;
 
     public WebSocketManagerService(
-        ApplicationDbContext context,
-        SseClientService sseClientService)
+        SseClientService sseClientService,
+        IServiceScopeFactory scopeFactory)
     {
-        _context = context;
         _sseClientService = sseClientService;
+        this.scopeFactory = scopeFactory;
     }
 
     public void AddSocket(string id, WebSocket socket)
@@ -30,142 +31,208 @@ public class WebSocketManagerService
     {
         if (_sockets.TryRemove(id, out var pair))
         {
-            var (socket, client) = pair;
-            if (client != null)
+            using (var scope = scopeFactory.CreateScope())
             {
-                await UnbindClient(client);
-            }
+                var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            await socket.CloseAsync(
-                WebSocketCloseStatus.NormalClosure,
-                "Connection closed by the server",
-                CancellationToken.None
-            );
+                var (socket, client) = pair;
+                if (client != null)
+                {
+                    var rClient = _context.Clients.FirstOrDefault(x => x.Id == client);
+                    if(rClient != null)
+                    {
+                        await UnbindClient(rClient);
+                    }
+                }
+
+                if (socket.State == WebSocketState.Open || socket.State == WebSocketState.CloseSent || socket.State == WebSocketState.CloseReceived)
+                {
+                    await socket.CloseAsync(
+                        WebSocketCloseStatus.NormalClosure,
+                        "Connection closed by the server",
+                        CancellationToken.None
+                    );
+                }
+            }
         }
     }
 
     public async Task BindClient(string socketId, RegisteredClient client)
     {
-        if (!_context.Clients.Any(x => x.Id == client.Id))
+        using (var scope = scopeFactory.CreateScope())
         {
-            return;
+            var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            Console.WriteLine("Binded client");
+
+            if (!_context.Clients.Any(x => x.Id == client.Id))
+            {
+                return;
+            }
+
+            var key = socketId;
+            if (!_sockets.Any(x => x.Key == key))
+            {
+                return;
+            }
+
+            var socket = _sockets[key].Item1;
+            if (socket == null || socket.State != WebSocketState.Open)
+            {
+                return;
+            }
+
+            await _sseClientService.PublishAsJsonAsync("device", new
+            {
+                client_id = client.Identifier,
+                action = "add"
+            });
+
+            _sockets[key] = (socket, client.Id);
+
         }
-
-        var key = socketId;
-        if (!_sockets.Any(x => x.Key == key))
-        {
-            return;
-        }
-
-        var socket = _sockets[key].Item1;
-        if (socket == null || socket.State != WebSocketState.Open)
-        {
-            return;
-        }
-
-        await _sseClientService.PublishAsJsonAsync("device", new
-        {
-            client_id = client.Identifier,
-            action = "add"
-        });
-
-        _sockets[key] = (socket, client);
     }
 
     public async Task BindClient(WebSocket socket, RegisteredClient client)
     {
-        if(!_context.Clients.Any(x => x.Id == client.Id))
+        using (var scope = scopeFactory.CreateScope())
         {
-            return;
+            var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            Console.WriteLine("Binded client");
+
+            if (!_context.Clients.Any(x => x.Id == client.Id))
+            {
+                return;
+            }
+
+            if (socket.State != WebSocketState.Open)
+            {
+                return;
+            }
+
+            var key = _sockets.Keys.FirstOrDefault(x => _sockets[x].Item1 == socket);
+            if (key == null)
+            {
+                return;
+            }
+
+            await _sseClientService.PublishAsJsonAsync("device", new
+            {
+                client_id = client.Identifier,
+                action = "add"
+            });
+
+            _sockets[key] = (socket, client.Id);
         }
-
-        if (socket.State != WebSocketState.Open)
-        {
-            return;
-        }
-
-        var key = _sockets.Keys.FirstOrDefault(x => _sockets[x].Item1 == socket);
-        if(key == null)
-        {
-            return;
-        }
-
-        await _sseClientService.PublishAsJsonAsync("device", new
-        {
-            client_id = client.Identifier,
-            action = "add"
-        });
-
-        _sockets[key] = (socket, client);
     }
 
     public async Task UnbindClient(RegisteredClient client)
     {
-        if (!_context.Clients.Any(x => x.Id == client.Id))
+        using (var scope = scopeFactory.CreateScope())
         {
-            return;
+            var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            Console.WriteLine("Unbinded client");
+
+            if (!_context.Clients.Any(x => x.Id == client.Id))
+            {
+                return;
+            }
+
+            var key = _sockets.Keys.FirstOrDefault(x => _sockets[x].Item2 == client.Id);
+            if (key == null)
+            {
+                return;
+            }
+
+            await _sseClientService.PublishAsJsonAsync("device", new
+            {
+                client_id = client.Identifier,
+                action = "remove"
+            });
+
+            _sockets[key] = (_sockets[key].Item1, null);
         }
-
-        var key = _sockets.Keys.FirstOrDefault(x => _sockets[x].Item2 == client);
-        if (key == null)
-        {
-            return;
-        }
-
-        await _sseClientService.PublishAsJsonAsync("device", new
-        {
-            client_id = client.Identifier,
-            action = "remove"
-        });
-
-        _sockets[key] = (_sockets[key].Item1, null);
     }
 
     public bool IsClientBound(WebSocket socket, RegisteredClient client)
     {
-        if (!_context.Clients.Any(x => x.Id == client.Id))
+        using (var scope = scopeFactory.CreateScope())
         {
-            return false;
-        }
+            var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var key = _sockets.Keys.FirstOrDefault(x => _sockets[x].Item1 == socket);
-        if (key == null)
-        {
-            return false;
-        }
+            if (!_context.Clients.Any(x => x.Id == client.Id))
+            {
+                return false;
+            }
 
-        return _sockets[key].Item2 == client;
+            var key = _sockets.Keys.FirstOrDefault(x => _sockets[x].Item1 == socket);
+            if (key == null)
+            {
+                return false;
+            }
+
+            return _sockets[key].Item2 == client.Id;
+        }
     }
 
     public bool IsClientBound(string socketId, RegisteredClient client)
     {
-        if (!_context.Clients.Any(x => x.Id == client.Id))
+        using (var scope = scopeFactory.CreateScope())
         {
-            return false;
-        }
+            var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var key = _sockets.Keys.FirstOrDefault(x => x == socketId);
-        if (key == null)
-        {
-            return false;
-        }
+            if (!_context.Clients.Any(x => x.Id == client.Id))
+            {
+                return false;
+            }
 
-        return _sockets[key].Item2 == client;
+            var key = _sockets.Keys.FirstOrDefault(x => x == socketId);
+            if (key == null)
+            {
+                return false;
+            }
+
+            return _sockets[key].Item2 == client.Id;
+        }
     }
 
     public RegisteredClient? GetBoundClient(string id)
     {
-        return _sockets.TryGetValue(id, out var pair) ? pair.Item2 : null;
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var clientId = _sockets.TryGetValue(id, out var pair) ? pair.Item2 : null;
+            if(id == null)
+            {
+                return null;
+            }
+
+            var client = _context.Clients.FirstOrDefault(x => x.Id == clientId);
+            return client;
+        }
     }
 
     public string? GetBoundSocket(RegisteredClient client)
     {
-        return _sockets.FirstOrDefault(x => x.Value.Item2 == client).Key;
+        return _sockets.FirstOrDefault(x => x.Value.Item2 == client.Id).Key;
     }
 
     public List<RegisteredClient> GetAllBoundClients()
     {
-        return _sockets.Values.Select(x => x.Item2).Where(x => x != null).ToList();
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var clientIds = _sockets.Values.Select(x => x.Item2).Where(x => x != null);
+            if (clientIds == null)
+            {
+                return new List<RegisteredClient>();
+            }
+
+            var clients = _context.Clients.Where(x => clientIds.Contains(x.Id)).ToList();
+            return clients;
+        }
     }
 
     public async Task SendMessageAsync(byte[] message)

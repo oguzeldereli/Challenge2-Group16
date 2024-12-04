@@ -78,6 +78,7 @@ public class Program
 
         // Singleton Services
         builder.Services.AddSingleton<SseClientService>();
+        builder.Services.AddSingleton<WebSocketManagerService>();
 
         // Scoped Services
         builder.Services.AddScoped<PacketService>();
@@ -86,7 +87,6 @@ public class Program
         builder.Services.AddScoped<ChainService>();
         builder.Services.AddScoped<PacketHandlingService>();
         builder.Services.AddScoped<PacketManagingService>();
-        builder.Services.AddScoped<WebSocketManagerService>();
         builder.Services.AddScoped<WebSocketHandlerService>();
         builder.Services.AddScoped<AuthService>();
 

@@ -1,6 +1,7 @@
 ﻿using Challenge2_Group16_GUI_WebAPI.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,7 +27,25 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
                 {
                     WebSocket webSocket = await httpContext.WebSockets.AcceptWebSocketAsync();
                     Console.WriteLine("WebSocket connected");
-                    await webSocketService.HandleAsync(webSocket);
+                    try
+                    {
+                        await webSocketService.HandleAsync(webSocket);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error during WebSocket handling {ex.Message}");
+                    }
+                    finally
+                    {
+                        if (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseReceived || webSocket.State == WebSocketState.CloseSent)
+                        {
+                            await webSocket.CloseAsync(
+                            WebSocketCloseStatus.NormalClosure,
+                            "Closing connection",
+                                CancellationToken.None);
+                        }
+                    }
+                    return;
                 }
                 else
                 {
@@ -38,7 +57,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
             else
             {
                 Console.WriteLine("Request path is not /ws");
-
             }
 
             await _next(httpContext);

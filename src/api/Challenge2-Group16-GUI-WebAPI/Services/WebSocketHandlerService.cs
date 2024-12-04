@@ -2,10 +2,12 @@
 using Challenge2_Group16_GUI_WebAPI.Models;
 using Microsoft.AspNetCore.Http;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 
 namespace Challenge2_Group16_GUI_WebAPI.Services
@@ -44,25 +46,40 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             ArraySegment<byte> buffer = new ArraySegment<byte>(new byte[4096]);
             WebSocketReceiveResult result = null;
 
-            using (var ms = new MemoryStream())
+            try
             {
-                do
+                using (var ms = new MemoryStream())
                 {
-                    result = await socket.ReceiveAsync(buffer, CancellationToken.None);
-
-                    if (result.MessageType == WebSocketMessageType.Close)
+                    do
                     {
-                        await socket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
-                        return (result.MessageType, null);
-                    }
+                        result = await socket.ReceiveAsync(buffer, CancellationToken.None);
 
-                    ms.Write(buffer.Array, buffer.Offset, result.Count);
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            await socket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+                            return (result.MessageType, null);
+                        }
 
-                } while (!result.EndOfMessage);
+                        ms.Write(buffer.Array, buffer.Offset, result.Count);
 
-                ms.Seek(0, SeekOrigin.Begin);
+                    } while (!result.EndOfMessage);
 
-                return (result.MessageType, ms.ToArray());
+                    ms.Seek(0, SeekOrigin.Begin);
+
+                    return (result.MessageType, ms.ToArray());
+                }
+            }
+            catch (WebSocketException ex)
+            {
+                // Log the exception and return a message type indicating the error
+                Console.WriteLine($"WebSocketException: {ex.Message}");
+                return (WebSocketMessageType.Close, new byte[0]);
+            }
+            catch (Exception ex)
+            {
+                // Handle other exceptions
+                Console.WriteLine($"Exception: {ex.Message}");
+                return (WebSocketMessageType.Close, new byte[0]);
             }
         }
 
@@ -78,11 +95,13 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task ParseRegisterPacketAsync(string socketId, DataPacketModel packet)
         {
+
             if (packet.AuthorizationToken.SequenceEqual(new byte[16]) &&
                     packet.PacketError == (uint)PacketError.None &&
                     packet.DataSize == 36 &&
                     packet.PacketData.Length == 36 &&
-                    packet.PacketSignature.SequenceEqual(new byte[32]))
+                    packet.PacketSignature.SequenceEqual(new byte[32]) &&
+                    _packetService.ValidatePacket(packet))
             {
                 byte[] clientId = packet.PacketData.Take(32).ToArray();
                 ClientType clientType = (ClientType)BitConverter.ToUInt32(packet.PacketData.Skip(32).Take(4).ToArray(), 0);
@@ -106,7 +125,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             if (packet.AuthorizationToken.SequenceEqual(new byte[16]) &&
                     packet.PacketError == (uint)PacketError.None &&
                     packet.DataSize == 64 &&
-                    packet.PacketData.Length == 64)
+                    packet.PacketData.Length == 64 &&
+                    _packetService.ValidatePacket(packet))
             {
                 byte[] clientId = packet.PacketData.Take(32).ToArray();
                 byte[] clientSecret = packet.PacketData.Skip(32).Take(32).ToArray();
@@ -137,7 +157,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         {
             if (packet.PacketError == (uint)PacketError.None &&
                     packet.DataSize == 0 &&
-                    packet.PacketData.Length == 0)
+                    packet.PacketData.Length == 0 &&
+                    _packetService.ValidatePacket(packet))
             {
                 var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken == packet.AuthorizationToken);
                 if (registeredClient == null)
@@ -168,7 +189,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task ParseDataPacketAsync(string socketId, DataPacketModel packet)
         {
-            if (packet.PacketError == (uint)PacketError.None)
+            if (packet.PacketError == (uint)PacketError.None &&
+                    _packetService.ValidatePacket(packet))
             {
                 var decryptedData = _packetService.GetData(packet);
                 if (decryptedData == null)
@@ -200,7 +222,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task ParseAckPacketAsync(string socketId, DataPacketModel packet)
         {
-            if (packet.PacketError == (uint)PacketError.None)
+            if (packet.PacketError == (uint)PacketError.None &&
+                    _packetService.ValidatePacket(packet))
             {
                 var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
                 if (registeredClient == null)
@@ -231,6 +254,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task ParseErrorPacketAsync(string socketId, DataPacketModel packet)
         {
+            if (!_packetService.ValidatePacket(packet))
+            {
+                await _packetHandlingService.InvalidPacketResponse(socketId);
+                return;
+            }
+
             var decryptedData = _packetService.GetData(packet);
             if (decryptedData == null)
             {
@@ -257,11 +286,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task ParseAndHandlePacketAsync(string socketId, DataPacketModel packet)
         {
-            if (_packetService.ValidatePacket(packet) == false)
-            {
-                await _packetHandlingService.InvalidPacketResponse(socketId);
-                return;
-            }
 
             if (packet.PacketType == (uint)PacketType.Register)
             {
@@ -301,30 +325,64 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         public async Task HandleAsync(WebSocket socket)
         {
             var socketId = Guid.NewGuid().ToString();
-            _webSocketManagerService.AddSocket(socketId, socket);
-
-            WebSocketMessageType type;
-
-            do
+            try
             {
-                (type, var message) = await ReceiveAsync(socket);
+                _webSocketManagerService.AddSocket(socketId, socket);
+            
+                WebSocketMessageType type = WebSocketMessageType.Close;
 
-                _ = Task.Run(async () =>
+                do
                 {
-                    var packet = DataPacketModel.Create(message);
-                    if (packet == null)
+                    (type, var message) = await ReceiveAsync(socket);
+                    if (type == WebSocketMessageType.Close)
                     {
-                        await _packetHandlingService.MalformedPacketResponse(socketId);
+                        break;
                     }
-                    else
-                    {
-                        await ParseAndHandlePacketAsync(socketId, packet);
-                    }
-                });
-            }
-            while (type != WebSocketMessageType.Close);
 
-            await _webSocketManagerService.RemoveSocketAsync(socketId);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var packet = DataPacketModel.Create(message);
+                            if (packet == null)
+                            {
+                                await _packetHandlingService.MalformedPacketResponse(socketId);
+                            }
+                            else
+                            {
+                                await ParseAndHandlePacketAsync(socketId, packet);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error while processing packet: {ex.Message}");
+                        }
+                    });
+                }
+                while (type != WebSocketMessageType.Close && socket.State == WebSocketState.Open);
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Fatal error in WebSocket handler for socket {socketId}: {ex.Message}");
+            
+            }
+            finally
+            {
+                await _webSocketManagerService.RemoveSocketAsync(socketId);
+
+                if (socket.State == WebSocketState.Open || socket.State == WebSocketState.CloseReceived || socket.State == WebSocketState.CloseSent)
+                {
+                    try
+                    {
+                        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing connection", CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error closing WebSocket for socket {socketId}: {ex.Message}");
+                    }
+                }
+            }
+            
         }
 
         private byte[] CombineByteArrays(params byte[][] arrays)

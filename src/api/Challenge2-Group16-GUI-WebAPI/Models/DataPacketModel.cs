@@ -255,7 +255,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
                     BitConverter.GetBytes(PacketType),
                     BitConverter.GetBytes(PacketError),
                     BitConverter.GetBytes(DataSize),
-                    PacketData
+                    DataSize > 0 ? PacketData : new byte[0]
                 );
         }
 

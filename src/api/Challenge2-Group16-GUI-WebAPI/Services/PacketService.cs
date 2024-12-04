@@ -1,5 +1,6 @@
 ﻿using Challenge2_Group16_GUI_WebAPI.Data;
 using Challenge2_Group16_GUI_WebAPI.Models;
+using System.Collections;
 using System.Security.Cryptography;
 
 namespace Challenge2_Group16_GUI_WebAPI.Services
@@ -16,9 +17,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         public bool IsPacketValid(DataPacketModel packet)
         {
             var isSignatureValid = packet.Signature.SequenceEqual(DataPacketModel.ValidSignature);
-            var isSentAtValid = packet.SentAt <= (ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            
-            return isSignatureValid && isSentAtValid;
+            return isSignatureValid;
         }
 
         public bool IsPacketAuthorized(DataPacketModel packet)
@@ -33,6 +32,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
             if (registeredClient == null)
             {
+                Console.WriteLine("hello");
                 return false;
             }
 
@@ -40,6 +40,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             var signature = GetPacketSignature(packet);
             if(signature == null)
             {
+                Console.WriteLine("hello");
                 return false;
             }
 

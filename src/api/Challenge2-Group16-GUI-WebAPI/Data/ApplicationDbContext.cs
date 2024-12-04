@@ -21,12 +21,6 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<StirringData> StirringData { get; set; }
     public DbSet<DeviceStatusData> DeviceStatusData { get; set; }
     public DbSet<LogData> LogData { get; set; }
-
-    public DbSet<TempAggregateData> TempAggregateData { get; set; }
-    public DbSet<pHAggregateData> pHAggregateData { get; set; }
-    public DbSet<StirringAggregateData> StirringAggregateData { get; set; }
-    public DbSet<DeviceStatusAggregateData> DeviceStatusAggregateData { get; set; }
-    public DbSet<LogAggregateData> LogAggregateData { get; set; }
 }
 
 public static class ApplicationDbContextExtensions

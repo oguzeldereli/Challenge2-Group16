@@ -63,6 +63,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             var authToken = new byte[16];
             RandomNumberGenerator.Fill(authToken);
             registeredClient.TemporaryAuthToken = authToken;
+            Console.WriteLine($"{socketId} {registeredClient.Id}");
             await _webSocketManagerService.BindClient(socketId, registeredClient);
             await _context.SaveChangesAsync();
 

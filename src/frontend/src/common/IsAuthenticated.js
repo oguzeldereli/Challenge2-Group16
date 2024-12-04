@@ -8,12 +8,12 @@ export async function isAuthenticated()
     
     const accessToken = localStorage.getItem("accessToken")
     const refreshToken = localStorage.getItem("refreshToken")
-    if(!refreshToken.trim())
+    if(!refreshToken || !refreshToken.trim())
     {
         return false;
     }
 
-    if(!accessToken.trim())
+    if(!accessToken || !accessToken.trim())
     {
         const {accessToken: accessToken1} = await TryRefreshAccessToken();
         accessToken = accessToken1;
