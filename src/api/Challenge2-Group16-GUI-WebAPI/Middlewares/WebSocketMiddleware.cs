@@ -1,5 +1,6 @@
 ﻿using Challenge2_Group16_GUI_WebAPI.Services;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using System.Net.Sockets;
 using System.Net.WebSockets;
@@ -12,10 +13,13 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
     public class WebSocketMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly WebSocketManagerService _webSocketManagerService;
 
-        public WebSocketMiddleware(RequestDelegate next)
+        public WebSocketMiddleware(RequestDelegate next,
+            WebSocketManagerService webSocketManagerService)
         {
             _next = next;
+            _webSocketManagerService = webSocketManagerService;
         }
 
         public async Task Invoke(HttpContext httpContext, WebSocketHandlerService webSocketService)
@@ -25,11 +29,18 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
             {
                 if (httpContext.WebSockets.IsWebSocketRequest)
                 {
+                    var socketId = Guid.NewGuid().ToString();
                     WebSocket webSocket = await httpContext.WebSockets.AcceptWebSocketAsync();
-                    Console.WriteLine("WebSocket connected");
                     try
                     {
-                        await webSocketService.HandleAsync(webSocket);
+                        Console.WriteLine("WebSocket connected");
+                        _webSocketManagerService.AddSocket(socketId, webSocket);
+                        Console.WriteLine($"Added socket {socketId} to list of connected socets");
+
+                        var handler = webSocketService.HandleAsync(webSocket, socketId);
+                        var ping = webSocketService.SendPing(webSocket);
+
+                        await Task.WhenAny(handler, ping);
                     }
                     catch (Exception ex)
                     {
@@ -37,16 +48,13 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
                     }
                     finally
                     {
-                        if (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseReceived || webSocket.State == WebSocketState.CloseSent)
-                        {
-                            await webSocket.CloseAsync(
-                            WebSocketCloseStatus.NormalClosure,
-                            "Closing connection",
-                                CancellationToken.None);
-                        }
+                        Console.WriteLine("Websocket terminating...");
+                        await _webSocketManagerService.RemoveSocketAsync(socketId);
+                        webSocket.Dispose();
                     }
+
                     return;
-                }
+                }   
                 else
                 {
                     Console.WriteLine("Not a WebSocket request");
@@ -61,8 +69,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
 
             await _next(httpContext);
         }
-
-
     }
 
     // Extension method used to add the middleware to the HTTP request pipeline.

@@ -29,23 +29,28 @@ public class WebSocketManagerService
 
     public async Task RemoveSocketAsync(string id)
     {
-        if (_sockets.TryRemove(id, out var pair))
+        using (var scope = scopeFactory.CreateScope())
         {
-            using (var scope = scopeFactory.CreateScope())
-            {
-                var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-                var (socket, client) = pair;
-                if (client != null)
+            if (_sockets.TryRemove(id, out var pair))
+            {
+                var (socket, clientId) = pair;
+                Console.WriteLine($"Removed socket {id} with client {clientId ?? "N/A"}");
+                if (clientId != null)
                 {
-                    var rClient = _context.Clients.FirstOrDefault(x => x.Id == client);
-                    if(rClient != null)
+                    var client = _context.Clients.FirstOrDefault(x => x.Id == clientId);
+                    if (client != null)
                     {
-                        await UnbindClient(rClient);
+                        await _sseClientService.PublishAsJsonAsync("device", new
+                        {
+                            client_id = client.Identifier,
+                            action = "remove"
+                        });
                     }
                 }
 
-                if (socket.State == WebSocketState.Open || socket.State == WebSocketState.CloseSent || socket.State == WebSocketState.CloseReceived)
+                if (socket.State == WebSocketState.Open || socket.State == WebSocketState.CloseReceived)
                 {
                     await socket.CloseAsync(
                         WebSocketCloseStatus.NormalClosure,
@@ -53,8 +58,15 @@ public class WebSocketManagerService
                         CancellationToken.None
                     );
                 }
+                else if (socket.State != WebSocketState.Closed && socket.State != WebSocketState.Aborted)
+                {
+                    socket.Abort(); 
+                    Console.WriteLine("WebSocket aborted due to an invalid state.");
+                }
             }
         }
+
+        
     }
 
     public async Task BindClient(string socketId, RegisteredClient client)
@@ -63,7 +75,6 @@ public class WebSocketManagerService
         {
             var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            Console.WriteLine("Binded client");
 
             if (!_context.Clients.Any(x => x.Id == client.Id))
             {
@@ -82,14 +93,19 @@ public class WebSocketManagerService
                 return;
             }
 
+            var existingConnections = _sockets.Where(x => x.Value.Item2 == client.Id);
+            foreach (var connection in existingConnections)
+            {
+                await RemoveSocketAsync(connection.Key);
+            }
+
             await _sseClientService.PublishAsJsonAsync("device", new
             {
                 client_id = client.Identifier,
                 action = "add"
             });
-
+            Console.WriteLine($"Bound socket {socketId} to client {client.Id}");
             _sockets[key] = (socket, client.Id);
-
         }
     }
 
@@ -99,7 +115,6 @@ public class WebSocketManagerService
         {
             var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            Console.WriteLine("Binded client");
 
             if (!_context.Clients.Any(x => x.Id == client.Id))
             {
@@ -117,12 +132,19 @@ public class WebSocketManagerService
                 return;
             }
 
+            var existingConnections = _sockets.Where(x => x.Value.Item2 == client.Id);
+            foreach (var connection in existingConnections)
+            {
+                await RemoveSocketAsync(connection.Key);
+            }
+
             await _sseClientService.PublishAsJsonAsync("device", new
             {
                 client_id = client.Identifier,
                 action = "add"
             });
 
+            Console.WriteLine("Binded client");
             _sockets[key] = (socket, client.Id);
         }
     }
@@ -132,8 +154,6 @@ public class WebSocketManagerService
         using (var scope = scopeFactory.CreateScope())
         {
             var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-            Console.WriteLine("Unbinded client");
 
             if (!_context.Clients.Any(x => x.Id == client.Id))
             {
@@ -152,6 +172,7 @@ public class WebSocketManagerService
                 action = "remove"
             });
 
+            Console.WriteLine("Unbinded client");
             _sockets[key] = (_sockets[key].Item1, null);
         }
     }

@@ -41,11 +41,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         [HttpGet("events")]
         public async Task GetEventsAsync(CancellationToken cancellationToken)
         {
-            Response.Headers.Append("Content-Type", "text/event-stream");
-            Response.Headers.Append("Cache-Control", "no-cache");
-            Response.Headers.Append("Connection", "keep-alive");
-
-            Guid clientId = _sseClientService.AddClient(Response);
+            Guid clientId = await _sseClientService.AddClient(Response);
 
             try
             {

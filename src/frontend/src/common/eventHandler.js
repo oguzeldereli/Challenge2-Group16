@@ -2,10 +2,13 @@ import polyfilledEventSource from '@sanity/eventsource/browser'
 import apiClient, { apiBaseUrl } from "./apiClient";
 import { isAuthenticated } from './IsAuthenticated';
 
-
+let eventSource = null;
 export async function startSSEConnection(handleDataPacket, handleErrorPacket, handleDevicePacket)
 {
-
+    if (eventSource) {
+      console.log("SSE Connection already established");
+      return;
+    }
 
     const accessToken = localStorage.getItem("accessToken");
     
@@ -13,7 +16,7 @@ export async function startSSEConnection(handleDataPacket, handleErrorPacket, ha
         Authorization: `Bearer ${accessToken}`
     };
 
-    const eventSource = new polyfilledEventSource(apiBaseUrl + '/devices/events', { headers });
+    eventSource = new polyfilledEventSource(apiBaseUrl + '/devices/events', { headers });
 
     eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data); 
@@ -29,4 +32,11 @@ export async function startSSEConnection(handleDataPacket, handleErrorPacket, ha
       eventSource.addEventListener('error', (event) => handleErrorPacket(event));
 
       eventSource.addEventListener('device', (event) => handleDevicePacket(event));
+}
+
+export function stopSSEConnection() {
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
+  }
 }
