@@ -4,6 +4,7 @@ using Challenge2_Group16_GUI_WebAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
@@ -32,9 +33,27 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         }
 
         [Authorize]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return Ok(_webSocketManagerService.GetAllBoundClients().Select(x => x.Identifier));
+            var deviceIds = _webSocketManagerService.GetAllBoundClients().Select(x => BitConverter.ToString(x.Identifier).Replace("-", "").ToLowerInvariant());
+            List<(string deviceId, uint status, float tempTarget, float phTarget, float rpmTarget)> values = new();
+            _webSocketManagerService.GetAllBoundClients().ToList().ForEach(async (device) =>
+            {
+                var socket = _webSocketManagerService.GetBoundSocket(device);
+                if (socket == null)
+                {
+                    return;
+                }
+
+                var status = await _packetManagingService.DeviceStatusRequest(socket, device);
+                if (status == null)
+                {
+                    return;
+                }
+
+                values.Add((BitConverter.ToString(device.Identifier).Replace("-", "").ToLowerInvariant(), status.Status, status.TempTarget, status.PhTarget, status.RPMTarget));
+            });
+            return Ok(values);
         }
 
         [Authorize]
@@ -61,8 +80,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         [HttpGet("{id}/status")]
         public async Task<IActionResult> GetTargets(string id)
         {
-            byte[] idBase64Decode = Convert.FromBase64String(id);
-            var connectedRegisteredClient = _webSocketManagerService.GetAllBoundClients().Where(x => x.Identifier == idBase64Decode).FirstOrDefault();
+            byte[] idHex = Convert.FromHexString(id);
+            var connectedRegisteredClient = _webSocketManagerService.GetAllBoundClients().Where(x => x.Identifier == idHex).FirstOrDefault();
             if (connectedRegisteredClient == null)
             {
                 return BadRequest(new
@@ -71,7 +90,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
                 });
             }
 
-            var databaseRegisteredClient = await _context.Clients.Include(x => x.DeviceStatusData).FirstOrDefaultAsync(c => c.Identifier == idBase64Decode);
+            var databaseRegisteredClient = await _context.Clients.Include(x => x.DeviceStatusData).FirstOrDefaultAsync(c => c.Identifier == idHex);
             if (databaseRegisteredClient == null)
             {
                 return BadRequest(new
@@ -107,7 +126,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
                 });
             }
 
-            return Ok(new { response.Status, response.TempTarget, response.PhTarget, response.RPMTarget });
+            return Ok(new { status = response.Status, tempTarget = response.TempTarget, phTarget = response.PhTarget, rpmTargget = response.RPMTarget });
         }
 
         [Authorize]

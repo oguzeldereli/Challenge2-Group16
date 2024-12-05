@@ -38,14 +38,14 @@ double runPH(double target_ph) {
       total_seconds++;
     } else if (current_ph > 7 || current_ph > target_ph) {
       // Too alkaline, activate pumpA (acid)
-      analogWrite(ph_pumpAPin, 0);
-      analogWrite(ph_pumpBPin, 255);
+      analogWrite(ph_pumpAPin, 255);
+      analogWrite(ph_pumpBPin, 0);
       total_seconds++;
     } else {
       analogWrite(ph_pumpAPin, 0);
       analogWrite(ph_pumpBPin, 0);
     }
   }
-
+  Serial.println(current_ph);
   return current_ph;
 }

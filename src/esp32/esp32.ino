@@ -8,14 +8,12 @@ char *ssid = "eduroam";
 char *USER = "zcabogu@ucl.ac.uk";
 char *PASS = "xxxxxxxxxx";
 
-
-
 void setup()
 {
     Serial.begin(115200); // initialize serial connection
     delay(1000);          // give time for serial to init
     Serial.println("Initializing I2C connection with Arduino...");
-    i2c_init_listener(); // initialize arduino connection
+    // i2c_init_listener();
     Serial.println("Done.");
 
     bool connected = true;
@@ -35,21 +33,31 @@ void setup()
     Serial.println("Done.");
 }
 
+unsigned long previousMillis = 0;
 void loop()
 {
     // websocket_keepalive();
-
+    
     unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= interval) 
+    if (currentMillis - previousMillis >= 1000 && i2c_is_connected()) 
     {
         previousMillis = currentMillis;
         
-        int len =  i2c_request(9); // constantly temp data
+        uint8_t command = 0x00;
+        i2c_write(&command, 1);
+        int len =  i2c_request(5); // constantly temp data
         handle_response(len);
-        int len =  i2c_request(9); // constantly ph data
+
+        command = 0x01;
+        i2c_write(&command, 1);
+        len =  i2c_request(5); // constantly ph data
         handle_response(len);
-        int len =  i2c_request(9); // constantly rpm data
+
+        command = 0x02;
+        i2c_write(&command, 1);
+        len =  i2c_request(5); // constantly rpm data
         handle_response(len);
     }
+    
 
 }

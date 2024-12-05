@@ -11,9 +11,9 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         public string ClientId { get; set; }
         public DateTime TimeStamp { get; set; }
         public uint Status { get; set; }
-        public double TempTarget { get; set; }
-        public double PhTarget { get; set; }
-        public double RPMTarget { get; set; }
+        public float TempTarget { get; set; }
+        public float PhTarget { get; set; }
+        public float RPMTarget { get; set; }
             
         public DeviceStatusData()
         {

@@ -6,4 +6,4 @@ double convertToPh(int analogInput);
 void setupPH();
 double runPH();
 
-#endif 
+#endif 

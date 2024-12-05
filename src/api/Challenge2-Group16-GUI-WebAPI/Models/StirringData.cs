@@ -10,7 +10,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Models
         [ForeignKey("Client")]
         public string ClientId { get; set; }
         public DateTime TimeStamp { get; set; }
-        public double RPM { get; set; }
+        public float RPM { get; set; }
 
         public StirringData()
         {

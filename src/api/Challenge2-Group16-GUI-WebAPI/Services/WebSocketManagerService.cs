@@ -3,6 +3,7 @@ using Challenge2_Group16_GUI_WebAPI.Models;
 using Challenge2_Group16_GUI_WebAPI.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Net.WebSockets;
@@ -44,7 +45,7 @@ public class WebSocketManagerService
                     {
                         await _sseClientService.PublishAsJsonAsync("device", new
                         {
-                            client_id = client.Identifier,
+                            client_id = BitConverter.ToString(client.Identifier).Replace("-", "").ToLowerInvariant(),
                             action = "remove"
                         });
                     }
@@ -64,9 +65,7 @@ public class WebSocketManagerService
                     Console.WriteLine("WebSocket aborted due to an invalid state.");
                 }
             }
-        }
-
-        
+        }   
     }
 
     public async Task BindClient(string socketId, RegisteredClient client)
@@ -101,50 +100,10 @@ public class WebSocketManagerService
 
             await _sseClientService.PublishAsJsonAsync("device", new
             {
-                client_id = client.Identifier,
+                client_id = BitConverter.ToString(client.Identifier).Replace("-", "").ToLowerInvariant(),
                 action = "add"
             });
             Console.WriteLine($"Bound socket {socketId} to client {client.Id}");
-            _sockets[key] = (socket, client.Id);
-        }
-    }
-
-    public async Task BindClient(WebSocket socket, RegisteredClient client)
-    {
-        using (var scope = scopeFactory.CreateScope())
-        {
-            var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-
-            if (!_context.Clients.Any(x => x.Id == client.Id))
-            {
-                return;
-            }
-
-            if (socket.State != WebSocketState.Open)
-            {
-                return;
-            }
-
-            var key = _sockets.Keys.FirstOrDefault(x => _sockets[x].Item1 == socket);
-            if (key == null)
-            {
-                return;
-            }
-
-            var existingConnections = _sockets.Where(x => x.Value.Item2 == client.Id);
-            foreach (var connection in existingConnections)
-            {
-                await RemoveSocketAsync(connection.Key);
-            }
-
-            await _sseClientService.PublishAsJsonAsync("device", new
-            {
-                client_id = client.Identifier,
-                action = "add"
-            });
-
-            Console.WriteLine("Binded client");
             _sockets[key] = (socket, client.Id);
         }
     }
@@ -168,7 +127,7 @@ public class WebSocketManagerService
 
             await _sseClientService.PublishAsJsonAsync("device", new
             {
-                client_id = client.Identifier,
+                client_id = BitConverter.ToString(client.Identifier).Replace("-", "").ToLowerInvariant(),
                 action = "remove"
             });
 

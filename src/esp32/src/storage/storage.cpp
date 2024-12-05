@@ -17,12 +17,14 @@ uint8_t *get_read_buffer()
     return read_buffer;
 }
 
-uint8_t *read_bytes(const char *key)
+uint8_t *read_bytes(const char *key, int length)
 {
     Preferences preferences;
     preferences.begin(default_namespace, false);
-    preferences.getBytes(key, read_buffer, 32);
+    preferences.getBytes(key, read_buffer, length);
     preferences.end();
+
+    return read_buffer;
 }
 
 void read_bytes_to(const char *key, uint8_t *position, size_t length)
@@ -54,9 +56,9 @@ void set_preferences(preferences_t *prefs)
     store_bytes("identifier", prefs->identifier, 32);
     store_bytes("secret", prefs->secret, 32);
     store_bytes("signature", prefs->signatureKey, 32);
-    store_bytes("tempTarget", &prefs->tempTarget, 8);
-    store_bytes("phTarget", &prefs->phTarget, 8);
-    store_bytes("rpmTarget", &prefs->rpmTarget, 8);
+    store_bytes("tempTarget", &prefs->tempTarget, 4);
+    store_bytes("phTarget", &prefs->phTarget, 4);
+    store_bytes("rpmTarget", &prefs->rpmTarget, 4);
 }
 
 preferences_t last_preferences;
@@ -65,9 +67,9 @@ preferences_t *get_preferences()
     read_bytes_to("identifier", last_preferences.identifier, 32);
     read_bytes_to("secret", last_preferences.secret, 32);
     read_bytes_to("signature", last_preferences.signatureKey, 32);
-    read_bytes_to("tempTarget", (uint8_t *)&last_preferences.tempTarget, 8);
-    read_bytes_to("phTarget", (uint8_t *)&last_preferences.phTarget, 8);
-    read_bytes_to("rpmTarget", (uint8_t *)&last_preferences.rpmTarget, 8);
+    read_bytes_to("tempTarget", (uint8_t *)&last_preferences.tempTarget, 4);
+    read_bytes_to("phTarget", (uint8_t *)&last_preferences.phTarget, 4);
+    read_bytes_to("rpmTarget", (uint8_t *)&last_preferences.rpmTarget, 4);
 
     return &last_preferences;
 }

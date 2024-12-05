@@ -555,10 +555,10 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 {
                     if (dataTypeToStore == 0)
                     {
-                        for (int i = 9; i < dataCount * 16; i += 16) // data starts from 9th byte and each packet is 16 bytes
+                        for (int i = 9; i < dataCount * 12; i += 12) // data starts from 9th byte and each packet is 16 bytes
                         {
                             var timeStamp = DateTimeOffset.FromUnixTimeSeconds(BitConverter.ToInt64(pureData, i)).UtcDateTime;
-                            var temperature = BitConverter.ToDouble(pureData, i + 8);
+                            var temperature = BitConverter.ToSingle(pureData, i + 8);
 
                             var tempData = new TempData()
                             {
@@ -584,10 +584,10 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     }
                     else if (dataTypeToStore == 1)
                     {
-                        for (int i = 9; i < dataCount * 16; i += 16) // data starts from 9th byte and each packet is 16 bytes
+                        for (int i = 9; i < dataCount * 12; i += 12) // data starts from 9th byte and each packet is 16 bytes
                         {
                             var timeStamp = DateTimeOffset.FromUnixTimeSeconds(BitConverter.ToInt64(pureData, i)).UtcDateTime;
-                            var rpm = BitConverter.ToDouble(pureData, i + 8);
+                            var rpm = BitConverter.ToSingle(pureData, i + 8);
 
                             var rpmData = new StirringData()
                             {
@@ -614,10 +614,10 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     }
                     else if (dataTypeToStore == 2)
                     {
-                        for (int i = 9; i < dataCount * 16; i += 16) // data starts from 9th byte and each packet is 16 bytes
+                        for (int i = 9; i < dataCount * 12; i += 12) // data starts from 9th byte and each packet is 16 bytes
                         {
                             var timeStamp = DateTimeOffset.FromUnixTimeSeconds(BitConverter.ToInt64(pureData, i)).UtcDateTime;
-                            var ph = BitConverter.ToDouble(pureData, i + 8);
+                            var ph = BitConverter.ToSingle(pureData, i + 8);
 
                             var phData = new pHData()
                             {
@@ -643,13 +643,13 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     }
                     else if (dataTypeToStore == 3)
                     {
-                        for (int i = 9; i < dataCount * 16; i += 24) // data starts from 9th byte and each packet is 16 bytes
+                        for (int i = 9; i < dataCount * 24; i += 24) // data starts from 9th byte and each packet is 16 bytes
                         {
                             var timeStamp = DateTimeOffset.FromUnixTimeSeconds(BitConverter.ToInt64(pureData, i)).UtcDateTime;
                             var status = BitConverter.ToUInt32(pureData, i + 8);
-                            var tempTarget = BitConverter.ToDouble(pureData, i + 12);
-                            var phTarget = BitConverter.ToDouble(pureData, i + 20);
-                            var rpmTarget = BitConverter.ToDouble(pureData, i + 28);
+                            var tempTarget = BitConverter.ToSingle(pureData, i + 12);
+                            var phTarget = BitConverter.ToSingle(pureData, i + 16);
+                            var rpmTarget = BitConverter.ToSingle(pureData, i + 20);
 
                             var statusData = new DeviceStatusData()
                             {
