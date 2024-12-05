@@ -78,7 +78,7 @@ void handle_data(uint8_t *data, uint32_t dataSize, uint8_t *packetIdentifier)
         {
             preferences_t *prefs = get_preferences();
             uint8_t dataType = data[2]; // 0 for temp, 1 for ph, 2 for rpm
-            double value = *((double *)data + 3);
+            float value = *((double *)data + 3);
             if (dataType == 0)
             {
                 prefs->tempTarget = value;
@@ -91,7 +91,7 @@ void handle_data(uint8_t *data, uint32_t dataSize, uint8_t *packetIdentifier)
             {
                 prefs->rpmTarget = value;
             }
-            i2c_write(data + 2, 9); // send full packet data to arduino
+            i2c_write(data + 2, 5); // send full packet data to arduino
             set_preferences(prefs);
             ack_server(packetIdentifier);
         }

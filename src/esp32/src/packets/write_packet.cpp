@@ -177,7 +177,7 @@ uint8_t *write_data_packet_normalized(uint8_t *data, uint32_t length, uint16_t *
     return write_normalized_packet(packetLength);
 }
 
-uint8_t *write_data_value_packet_normalized(uint8_t dataType, uint64_t timeStamp, double data, uint16_t *packetLength)
+uint8_t *write_data_value_packet_normalized(uint8_t dataType, uint64_t timeStamp, float data, uint16_t *packetLength)
 {
     // 1 byte packet flag = 0b00001000 binary data store
     // 1 byte data type = dataType
@@ -200,7 +200,7 @@ uint8_t *write_data_value_packet_normalized(uint8_t dataType, uint64_t timeStamp
     uint64_t dataCount = 1;
     memcpy(packet->data + 2, &dataCount, sizeof(uint64_t));
     memcpy(packet->data + 10, &timeStamp, sizeof(uint64_t));
-    memcpy(packet->data + 18, &data, sizeof(uint64_t));
+    memcpy(packet->data + 18, &data, sizeof(float));
 
     sign_packet_on_buffer();
     return write_normalized_packet(packetLength);
@@ -223,7 +223,7 @@ uint8_t *write_device_status_packet_normalized(uint64_t timeStamp, uint32_t stat
     uint8_t *auth_token = get_auth_token();
     memcpy(packet->authorizationToken, auth_token, 16);
     packet->packetError = 0;
-    packet->dataSize = 46;
+    packet->dataSize = 34;
     
     uint8_t packetFlag = 0b00001000;
     memcpy(packet->data, &packetFlag, sizeof(uint8_t));
@@ -236,9 +236,9 @@ uint8_t *write_device_status_packet_normalized(uint64_t timeStamp, uint32_t stat
     memcpy(packet->data + 2, &dataCount, sizeof(uint64_t));
     memcpy(packet->data + 10, &timeStamp, sizeof(uint64_t));
     memcpy(packet->data + 18, &status, sizeof(uint32_t));
-    memcpy(packet->data + 22, &prefs->tempTarget, sizeof(double));
-    memcpy(packet->data + 30, &prefs->phTarget, sizeof(double));
-    memcpy(packet->data + 38, &prefs->rpmTarget, sizeof(double));
+    memcpy(packet->data + 22, &prefs->tempTarget, sizeof(float));
+    memcpy(packet->data + 26, &prefs->phTarget, sizeof(float));
+    memcpy(packet->data + 30, &prefs->rpmTarget, sizeof(float));
 
     sign_packet_on_buffer();
     return write_normalized_packet(packetLength);

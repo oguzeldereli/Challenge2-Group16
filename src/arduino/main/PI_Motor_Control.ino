@@ -4,10 +4,11 @@
 #define STIRRING_OUTPUT_PIN 11 // PWM output pin
 #define PULSES_PER_REVOLUTION 70 // Pulses per motor revolution
 
+
 // Motor Constants
 const double T = 0.115;
-const double Z = 0.8;
-const double wn = 15;
+const double Z = 0.75;
+const double wn = 4.5;
 const double Kv = 225;
 const double wo = 1/T;
 
@@ -18,7 +19,7 @@ double motor_speed = 0; // Motor speed in RPM
 
 // PI Control Variables
 double Kp = (2 * Z * wn / wo - 1) / Kv; // Proportional gain
-double Ki = wn * wn / Kv / wo;  // Integral gain
+double Ki = 1.25 * (wn * wn / Kv / wo);  // Integral gain
 
 // PI Error Values
 double error = 0; // Current error
@@ -27,10 +28,10 @@ double Vmotor = 0; // Control signal (PWM value)
 
 // Timing for control loop
 unsigned long control_previous_time = 0;
-const unsigned long control_interval = 1000; // Control interval in microseconds (1 ms)
+const unsigned long CONTROL_INTERVAL = 1000; // Control interval in microseconds (1 ms)
 
 // Damping Variables
-#define FILTER_SIZE 5
+#define FILTER_SIZE 10
 double speedBuffer[FILTER_SIZE];
 int bufferIndex = 0;
 
@@ -87,15 +88,15 @@ double runStirring(double desired_speed) {
     Serial.println(" RPM");
   }
 
-  // PI Control every control_interval microseconds
-  if (current_time - control_previous_time >= control_interval) {
+  // PI Control every CONTROL_INTERVAL microseconds
+  if (current_time - control_previous_time >= CONTROL_INTERVAL) {
     control_previous_time = current_time;
 
     // Calculate the error
     error = desired_speed - motor_speed;
 
     // Accumulate the error for the Integral term
-    sum_error += error * (control_interval / 1000000.0); // Scale by interval time in seconds
+    sum_error += error * (CONTROL_INTERVAL / 1000000.0); // Scale by interval time in seconds
 
     // Compute the control signal
     Vmotor = Kp * error + Ki * sum_error;

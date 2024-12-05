@@ -72,7 +72,7 @@ void send_data_to_server(uint8_t *data, uint32_t dataLength)
     }
 }
 
-void send_value_to_server(uint8_t datatType, uint64_t timeStamp, double value)
+void send_value_to_server(uint8_t datatType, uint64_t timeStamp, float value)
 {
     uint16_t length;
     uint8_t *packet = write_data_value_packet_normalized(datatType, timeStamp, value, &length);
