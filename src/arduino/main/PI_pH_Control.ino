@@ -1,7 +1,7 @@
 #define ph_inPin A2
 #define ph_pumpAPin 6
 #define ph_pumpBPin 5
-#define error_margin 0.2
+#define error_margin 0.1
 #define pump_run_duration 5
 
 int current_volume = 0;
@@ -61,13 +61,11 @@ double runPH(double target_ph) {
   // Activate the appropriate pump based on the current pH level
   if (!pump_active) {
     if (current_ph < target_ph) {
-      // Too acidic, activate pumpB (alkali)
-      analogWrite(ph_pumpAPin, 0);
-      analogWrite(ph_pumpBPin, 255);
-    } else if (current_ph > target_ph) {
-      // Too alkaline, activate pumpA (acid)
       analogWrite(ph_pumpAPin, 255);
       analogWrite(ph_pumpBPin, 0);
+    } else if (current_ph > target_ph) {
+      analogWrite(ph_pumpAPin, 0);
+      analogWrite(ph_pumpBPin, 255);
     }
     previous_ph = current_ph;
     pump_active = true;
@@ -75,7 +73,5 @@ double runPH(double target_ph) {
     current_volume++;
   }
 
-  Serial.print("Current pH: ");
-  Serial.println(current_ph);
   return current_ph;
 }

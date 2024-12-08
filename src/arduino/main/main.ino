@@ -164,5 +164,7 @@ void loop() {
     previous_write_time = current_main_time;
 
     current_pH = runPH(desired_pH);
+    Serial.print("Current pH Level: ");
+    Serial.println(current_pH);
   }
 }
