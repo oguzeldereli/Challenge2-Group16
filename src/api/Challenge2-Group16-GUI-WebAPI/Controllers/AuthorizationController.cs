@@ -118,7 +118,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
                 return Unauthorized();
             }
 
-            var result = await _authService.SignOut(user, accessToken, refreshToken);
+            var result = await _authService.SignOut(user, accessToken);
             if (!result)
             {
                 return BadRequest(new { error = "invalid_token" });

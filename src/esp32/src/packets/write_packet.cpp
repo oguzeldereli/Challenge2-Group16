@@ -177,7 +177,7 @@ uint8_t *write_data_packet_normalized(uint8_t *data, uint32_t length, uint16_t *
     return write_normalized_packet(packetLength);
 }
 
-uint8_t *write_data_value_packet_normalized(uint8_t dataType, uint64_t timeStamp, float data, uint16_t *packetLength)
+uint8_t *write_data_value_packet_normalized(uint8_t dataType, uint64_t timeStamp, float data, uint16_t *packetLength, uint8_t *chainIdentifier)
 {
     // 1 byte packet flag = 0b00001000 binary data store
     // 1 byte data type = dataType
@@ -187,6 +187,10 @@ uint8_t *write_data_value_packet_normalized(uint8_t dataType, uint64_t timeStamp
     // total 26 bytes
 
     data_packet_model_t *packet = create_packet_on_buffer();
+    if(chainIdentifier != 0)
+    {
+        memcpy(packet->packetIdentifier, chainIdentifier, 16);
+    }
     packet->packetType = 4; // data packet
     uint8_t *auth_token = get_auth_token();
     memcpy(packet->authorizationToken, auth_token, 16);
@@ -206,7 +210,7 @@ uint8_t *write_data_value_packet_normalized(uint8_t dataType, uint64_t timeStamp
     return write_normalized_packet(packetLength);
 }
 
-uint8_t *write_device_status_packet_normalized(uint64_t timeStamp, uint32_t status, uint16_t *packetLength)
+uint8_t *write_device_status_packet_normalized(uint64_t timeStamp, uint32_t status, uint16_t *packetLength, uint8_t *chainIdentifier)
 {
     // 1 byte packet flag = 0b00001000 binary data store
     // 1 byte data type = 3 device status data
@@ -219,6 +223,10 @@ uint8_t *write_device_status_packet_normalized(uint64_t timeStamp, uint32_t stat
     // total 46 bytes
 
     data_packet_model_t *packet = create_packet_on_buffer();
+    if(chainIdentifier != 0)
+    {
+        memcpy(packet->packetIdentifier, chainIdentifier, 16);
+    }
     packet->packetType = 4; // data packet
     uint8_t *auth_token = get_auth_token();
     memcpy(packet->authorizationToken, auth_token, 16);

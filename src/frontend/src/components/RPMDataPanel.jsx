@@ -1,4 +1,4 @@
-import { Typography, Stack, Select, Option, Input, Box } from "@mui/joy"
+import { Typography, Stack, Select, Option, Input, Box, Button } from "@mui/joy"
 import { BarChart, BarPlot, ChartsXAxis, ChartsYAxis, LineChart, LinePlot, ResponsiveChartContainer } from "@mui/x-charts"
 import { DatePicker, DateTimeField, DateTimePicker, DesktopDatePicker } from "@mui/x-date-pickers"
 
@@ -36,6 +36,9 @@ export default function RPMDataPanel(props)
                         <Box>
                             <DateTimePicker label="End date/time" slotProps={{ textField: { size: 'small' } }} />
                         </Box>
+                        <Button sx={{backgroundColor: "#764ba2"}}>
+                            Query
+                        </Button>
                     </Stack>
                 )}
                 <LineChart

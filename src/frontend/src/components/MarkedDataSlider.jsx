@@ -4,10 +4,10 @@ import Slider from '@mui/joy/Slider';
 
 
 
-export default function MarkedDataSlider({currentTarget, setCurrentTarget, min, max, step, marks}) {
+export default function MarkedDataSlider({currentTarget, onChange, min, max, step, marks}) {
   return (
     <Slider
-        defaultValue={currentTarget}
+        value={currentTarget}
         step={step}
         min={min}
         max={max}
@@ -26,7 +26,7 @@ export default function MarkedDataSlider({currentTarget, setCurrentTarget, min, 
             backgroundColor: '#b58fdb', 
           },
         }}
-        onChange={(e) => setCurrentTarget(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
       />
   );
 }

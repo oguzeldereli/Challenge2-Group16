@@ -10,6 +10,8 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Net.WebSockets;
 using System.Text;
+using System;
+using System.Diagnostics;
 
 public class Program
 {
@@ -43,6 +45,7 @@ public class Program
         // Add database
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
         // Add serilog
         Log.Logger = new LoggerConfiguration()
@@ -79,16 +82,17 @@ public class Program
         // Singleton Services
         builder.Services.AddSingleton<SseClientService>();
         builder.Services.AddSingleton<WebSocketManagerService>();
+        builder.Services.AddSingleton<ChainService>();
+        builder.Services.AddSingleton<DataService>();
+        builder.Services.AddSingleton<PacketService>();
+        builder.Services.AddSingleton<RegisteredClientService>();
 
         // Scoped Services
-        builder.Services.AddScoped<PacketService>();
-        builder.Services.AddScoped<RegisteredClientService>();
-        builder.Services.AddScoped<DataService>();
-        builder.Services.AddScoped<ChainService>();
         builder.Services.AddScoped<PacketHandlingService>();
         builder.Services.AddScoped<PacketManagingService>();
         builder.Services.AddScoped<WebSocketHandlerService>();
         builder.Services.AddScoped<AuthService>();
+
 
         builder.Host.UseSerilog();
 

@@ -1,4 +1,4 @@
-import { Typography, Stack, Select, Option, Input, Box } from "@mui/joy"
+import { Typography, Stack, Select, Option, Input, Box, Button } from "@mui/joy"
 import { BarChart, BarPlot, ChartsXAxis, ChartsYAxis, LineChart, LinePlot, ResponsiveChartContainer } from "@mui/x-charts"
 import { DatePicker, DateTimeField, DateTimePicker, DesktopDatePicker } from "@mui/x-date-pickers"
 
@@ -19,7 +19,7 @@ export default function TemperatureDataPanel(props)
                         <Option key="hour" value="hour">hour</Option>
                         <Option key="five-hours" value="five-hours">5 hours</Option>
                         <Option key="day" value="day">day</Option>
-                    </Select>
+                    </Select>       
                 </Stack>
             )}
             
@@ -37,6 +37,9 @@ export default function TemperatureDataPanel(props)
                     <Box>
                         <DateTimePicker label="End date/time" slotProps={{ textField: { size: 'small' } }} />
                     </Box>
+                    <Button sx={{backgroundColor: "#764ba2"}}>
+                        Query
+                    </Button>
                 </Stack>
             )}
             <LineChart

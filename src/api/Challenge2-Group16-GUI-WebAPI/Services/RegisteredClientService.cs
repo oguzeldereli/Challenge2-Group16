@@ -1,6 +1,7 @@
 ﻿using Challenge2_Group16_GUI_WebAPI.Data;
 using Challenge2_Group16_GUI_WebAPI.Models;
 using Microsoft.AspNetCore.Razor.TagHelpers;
+using Microsoft.EntityFrameworkCore;
 using NuGet.Packaging.Signing;
 using System.Security.Cryptography;
 
@@ -8,85 +9,118 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 {
     public class RegisteredClientService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly SseClientService _sseClientService;
         private readonly WebSocketManagerService _webSocketManagerService;
 
         public RegisteredClientService(
-            ApplicationDbContext context,
+            IServiceScopeFactory serviceScopeFactory,
             SseClientService sseClientService,
             WebSocketManagerService webSocketManagerService)
         {
-            _context = context;
+            _serviceScopeFactory = serviceScopeFactory;
             _sseClientService = sseClientService;
             _webSocketManagerService = webSocketManagerService;
         }
 
+        public async Task<RegisteredClient?> GetRegisteredClientAsync(byte[] authToken)
+        {
+            using(var scope = _serviceScopeFactory.CreateScope())
+            {
+                var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                if (authToken.Length != 16)
+                {
+                    return null;
+                }
+
+                return await _context.Clients.FirstOrDefaultAsync(c => c.TemporaryAuthToken.SequenceEqual(authToken));
+
+            }
+        }
+
         public async Task<RegisteredClient?> RegisterClientAsync(byte[] clientIdentifier, ClientType type)
         {
-            if(type == ClientType.@public) // refuse public clients, only confidential clients are allowed
+            using (var scope = _serviceScopeFactory.CreateScope())
             {
-                return null;
+                var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                if (type == ClientType.@public) // refuse public clients, only confidential clients are allowed
+                {
+                    return null;
+                }
+
+                var existingClient = await _context.Clients.FirstOrDefaultAsync(c => c.Identifier.SequenceEqual(clientIdentifier));
+                if (existingClient != null)
+                {
+                    return existingClient;
+                }
+
+                RegisteredClient? client = RegisteredClient.Create(clientIdentifier, type);
+                if (client == null)
+                {
+                    return null;
+                }
+
+
+                _context.Clients.Add(client);
+                await _context.SaveChangesAsync();
+
+                return client;
             }
-
-            if (_context.Clients.Any(c => c.Identifier.SequenceEqual(clientIdentifier)))
-            {
-                return _context.Clients.FirstOrDefault(c => c.Identifier.SequenceEqual(clientIdentifier));
-            }
-
-            RegisteredClient? client = RegisteredClient.Create(clientIdentifier, type);
-            if(client == null)
-            {
-                return null;
-            }
-
-
-            _context.Clients.Add(client);
-            await _context.SaveChangesAsync();
-
-            return client;
         }
 
         public async Task<byte[]?> AuthorizeClientAsync(string socketId, byte[] clientIdentifier, byte[] clientSecret)
         {
-            if(clientIdentifier.Length != 32 || clientSecret.Length != 32)
+            using(var scope = _serviceScopeFactory.CreateScope())
             {
-                return null;
+                var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                if (clientIdentifier.Length != 32 || clientSecret.Length != 32)
+                {
+                    return null;
+                }
+
+                var registeredClient = await _context.Clients.FirstOrDefaultAsync(c => c.Identifier.SequenceEqual(clientIdentifier) && c.Secret.SequenceEqual(clientSecret));
+                if (registeredClient == null)
+                {
+                    return null;
+                }
+
+                var authToken = new byte[16];
+                RandomNumberGenerator.Fill(authToken);
+                registeredClient.TemporaryAuthToken = authToken;
+                await _webSocketManagerService.BindClient(socketId, registeredClient);
+                await _context.SaveChangesAsync();
+
+                return authToken;
             }
-
-            var registeredClient = _context.Clients.FirstOrDefault(c => c.Identifier.SequenceEqual(clientIdentifier) && c.Secret.SequenceEqual(clientSecret));
-            if (registeredClient == null)
-            {
-                return null;
-            }
-
-            var authToken = new byte[16];
-            RandomNumberGenerator.Fill(authToken);
-            registeredClient.TemporaryAuthToken = authToken;
-            await _webSocketManagerService.BindClient(socketId, registeredClient);
-            await _context.SaveChangesAsync();
-
-            return authToken;
         }
 
         public async Task<bool> RevokeClientAsync(byte[] authToken)
         {
-            if (authToken.Length != 16)
+            using (var scope = _serviceScopeFactory.CreateScope())
             {
-                return false;
-            }
+                var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken == authToken);
-            if (registeredClient == null)
-            {
-                return false;
-            }
+                if (authToken.Length != 16)
+                {
+                    return false;
+                }
 
-            
-            registeredClient.TemporaryAuthToken = new byte[16];
-            await _webSocketManagerService.UnbindClient(registeredClient);
-            await _context.SaveChangesAsync();
-            return true;
+                var registeredClient = await _context.Clients.FirstOrDefaultAsync(c => c.TemporaryAuthToken == authToken);
+                if (registeredClient == null)
+                {
+                    return false;
+                }
+
+
+                registeredClient.TemporaryAuthToken = new byte[16];
+                await _webSocketManagerService.UnbindClient(registeredClient);
+                await _context.SaveChangesAsync();
+                return true;
+
+            }
         }
     }
 }

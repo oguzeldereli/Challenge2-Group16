@@ -1,6 +1,7 @@
 ﻿using Challenge2_Group16_GUI_WebAPI.Data;
 using Challenge2_Group16_GUI_WebAPI.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
@@ -14,7 +15,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 {
     public class WebSocketHandlerService
     {
-        private readonly ApplicationDbContext _context;
         private readonly ILogger<WebSocketHandlerService> _logger;
         private readonly PacketService _packetService;
         private readonly RegisteredClientService _registeredClientService;
@@ -24,7 +24,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
 
         public WebSocketHandlerService(
-            ApplicationDbContext context,
             ILogger<WebSocketHandlerService> logger,
             PacketService packetService,
             RegisteredClientService registeredClientService,
@@ -32,7 +31,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             PacketHandlingService packetHandlingService,
             ChainService chainService)
         {
-            _context = context;
             _logger = logger;
             _packetService = packetService;
             _registeredClientService = registeredClientService;
@@ -111,6 +109,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task ParseAuthPacketAsync(string socketId, DataPacketModel packet)
         {
+
             if (packet.AuthorizationToken.SequenceEqual(new byte[16]) &&
                     packet.PacketError == (uint)PacketError.None &&
                     packet.DataSize == 64 &&
@@ -127,7 +126,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     return;
                 }
 
-                var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(temporaryAuthToken));
+                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(temporaryAuthToken);
                 if (registeredClient == null)
                 {
                     await _packetHandlingService.InternalErrorResponse(socketId);
@@ -144,19 +143,20 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task ParseRevokeAuthPacketAsync(string socketId, DataPacketModel packet)
         {
+
             if (packet.PacketError == (uint)PacketError.None &&
                     packet.DataSize == 0 &&
                     packet.PacketData.Length == 0 &&
                     _packetService.ValidatePacket(packet))
             {
-                var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken == packet.AuthorizationToken);
+                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
                 if (registeredClient == null)
                 {
                     await _packetHandlingService.InvalidPacketResponse(socketId);
                     return;
                 }
 
-                if (!_webSocketManagerService.IsClientBound(socketId, registeredClient))
+                if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
                 {
                     await _packetHandlingService.InternalErrorResponse(socketId);
                     return;
@@ -178,6 +178,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task ParseDataPacketAsync(string socketId, DataPacketModel packet)
         {
+
             if (packet.PacketError == (uint)PacketError.None &&
                     _packetService.ValidatePacket(packet))
             {
@@ -188,14 +189,14 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     return;
                 }
 
-                var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
+                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
                 if (registeredClient == null)
                 {
                     await _packetHandlingService.InvalidPacketResponse(socketId);
                     return;
                 }
 
-                if (!_webSocketManagerService.IsClientBound(socketId, registeredClient))
+                if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
                 {
                     await _packetHandlingService.InternalErrorResponse(socketId);
                     return;
@@ -214,14 +215,14 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             if (packet.PacketError == (uint)PacketError.None &&
                     _packetService.ValidatePacket(packet))
             {
-                var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
+                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
                 if (registeredClient == null)
                 {
                     await _packetHandlingService.InvalidPacketResponse(socketId);
                     return;
                 }
 
-                if (!_webSocketManagerService.IsClientBound(socketId, registeredClient))
+                if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
                 {
                     await _packetHandlingService.InternalErrorResponse(socketId);
                     return;
@@ -243,6 +244,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public async Task ParseErrorPacketAsync(string socketId, DataPacketModel packet)
         {
+
             if (!_packetService.ValidatePacket(packet))
             {
                 await _packetHandlingService.InvalidPacketResponse(socketId);
@@ -256,14 +258,14 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 return;
             }
 
-            var registeredClient = _context.Clients.FirstOrDefault(c => c.TemporaryAuthToken.SequenceEqual(packet.AuthorizationToken));
+            var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
             if (registeredClient == null)
             {
                 await _packetHandlingService.InvalidPacketResponse(socketId);
                 return;
             }
 
-            if (!_webSocketManagerService.IsClientBound(socketId, registeredClient))
+            if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
             {
                 await _packetHandlingService.InternalErrorResponse(socketId);
                 return;
@@ -359,7 +361,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"Error while processing packet: {ex.Message}");
-                                Console.WriteLine($"Socket: {socketId}, Bound user: {_webSocketManagerService.GetBoundClient(socketId)?.Id ?? ""}");
+                                Console.WriteLine($"Socket: {socketId}, Bound user: {(await _webSocketManagerService.GetBoundClient(socketId))?.Id ?? ""}");
                                 await _webSocketManagerService.RemoveSocketAsync(socketId);
                                 return;
                             }
@@ -375,8 +377,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             }
         }
 
-        private const int PingInterval = 5000; // 1 second
         private const int TimeoutThreshold = 10000; // 5 seconds
+        private const int PingInterval = 5000; // 5 second
         public async Task SendPing(WebSocket webSocket)
         {
             while (webSocket.State == WebSocketState.Open)
@@ -419,6 +421,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             {
                 Buffer.BlockCopy(array, 0, combined, offset, array.Length);
                 offset += array.Length;
+                
             }
             return combined;
         }

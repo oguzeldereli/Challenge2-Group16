@@ -27,8 +27,8 @@ export default function CurrentDataDisplay(props)
                 <Typography
                     sx={{ fontSize: 'xl4', lineHeight: 1, textAlign: "center" }}
                 >
-                    {props.targetValue}
-                </Typography>
+                    {(props.min <= props.targetValue && props.max >= props.targetValue) ? props.targetValue.toFixed(1) :  'N/A'}
+                </Typography> 
             </Stack>
           </Stack>  
           <Typography
@@ -39,7 +39,7 @@ export default function CurrentDataDisplay(props)
           </Typography>
           
           <ReverseAccordion>
-            <MarkedDataSlider currentTarget={props.value} setCurrentTarget={props.setCurrentTarget} min={props.min} max={props.max} step={props.step} marks={props.marks}  />
+            <MarkedDataSlider currentTarget={props.value} onChange={props.onTargetChange} min={props.min} max={props.max} step={props.step} marks={props.marks}  />
           </ReverseAccordion>
         </Box>
       );

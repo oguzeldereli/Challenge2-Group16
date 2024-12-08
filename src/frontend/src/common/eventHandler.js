@@ -27,11 +27,11 @@ export async function startSSEConnection(handleDataPacket, handleErrorPacket, ha
         console.log("Error on event");
       };
   
-      eventSource.addEventListener('data', (event) => handleDataPacket(event));
+      eventSource.addEventListener('data', async (event) => await handleDataPacket(event));
 
-      eventSource.addEventListener('error', (event) => handleErrorPacket(event));
+      eventSource.addEventListener('error', async (event) => await handleErrorPacket(event));
 
-      eventSource.addEventListener('device', (event) => handleDevicePacket(event));
+      eventSource.addEventListener('device', async (event) => await handleDevicePacket(event));
 }
 
 export function stopSSEConnection() {

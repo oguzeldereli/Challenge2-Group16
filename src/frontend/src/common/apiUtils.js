@@ -31,3 +31,65 @@ export async function getRegisteredAndConnectedDevices()
         console.error("Authentication check failed:", error);
     }
 }
+
+export async function getDeviceStatus(id) {
+    if(!isAuthenticated())
+    {
+        return null;
+    }
+    
+    const accessToken = localStorage.getItem("accessToken")
+    try {
+        const response = await fetch(`${api}/devices/${id}/status`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        const responseData = await response.json();
+
+        console.log(responseData);
+        if (response.ok && responseData) {
+            return responseData;
+        }
+
+
+        return null;
+    } catch (error) {
+        console.error("Authentication check failed:", error);
+    }
+}
+
+export async function setDeviceTarget(id, dataType, target)
+{
+    if(!isAuthenticated())
+    {
+        return null;
+    }
+    const accessToken = localStorage.getItem("accessToken")
+    try {
+        const response = await fetch(`${api}/devices/${id}/target`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                dataType: dataType, // Ensure keys match DTO property names (case-insensitive)
+                target: target
+            })
+        });
+
+        const responseData = await response.json();
+
+        console.log(responseData);
+        if (response.ok && responseData) {
+            return responseData;
+        }
+
+        return null;
+    } catch (error) {
+        console.error("Authentication check failed:", error);
+    }
+}
