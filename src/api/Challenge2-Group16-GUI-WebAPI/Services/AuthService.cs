@@ -132,8 +132,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
             if (refreshRelatedToken.IsUsed)
             {
-                _dbContext.Entry(user).Reference(u => u.RefreshTokens).Load();
-                user.RefreshTokens.ForEach(rt => rt.IsRevoked = true);
+                _dbContext.Entry(user).Reference(u => u.RefreshToken).Load();
+                user.RefreshToken.IsRevoked = true;
                 return null;
             }
 
@@ -169,14 +169,14 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 return false;
             }
 
-            _dbContext.Entry(User).Reference(u => u.RefreshTokens).Load();
-            User.RefreshTokens.ForEach(rt => rt.IsRevoked = true);
+            _dbContext.Entry(User).Reference(u => u.RefreshToken).Load();
+            User.RefreshToken.IsRevoked = true;
             await _dbContext.SaveChangesAsync();
 
             return true;
         }
 
-        public async Task<bool> SignOut(AppUser User, string accessToken, string refreshToken)
+        public async Task<bool> SignOut(AppUser User, string accessToken)
         {
             // validate the access token claims by comparing to the user, if accessToken is valid, add access token to access token blacklist
             // refresh tokens stay
@@ -196,14 +196,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 AccessToken = accessToken
             };
 
-            var rToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == refreshToken);
-            if(rToken == null)
-            {
-                return false;
-            }
-
             _dbContext.AccessTokenBlacklist.Add(tokenBlacklist);
-            user.RefreshTokens.Remove(rToken);
             await _dbContext.SaveChangesAsync();
             return true;
         }
