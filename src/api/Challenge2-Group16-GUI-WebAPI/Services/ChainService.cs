@@ -8,7 +8,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
         public TaskCompletionSource<object>? GetExpectedResponseChain(byte[] chainIdentifier)
         {
-            _expectedResponseChains.TryGetValue(chainIdentifier, out var response);
+            var response = _expectedResponseChains.FirstOrDefault(x => x.Key.SequenceEqual(chainIdentifier)).Value;
             return response;
         }
 
@@ -79,7 +79,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             var tcs = GetExpectedResponseChain(chainIdentifier);
             if (tcs == null)
             {
-                return false;
+                    return false;
             }
 
             tcs.SetResult(response);

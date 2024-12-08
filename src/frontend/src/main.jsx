@@ -5,9 +5,8 @@ import App from './App.jsx'
 import { DataProvider } from './components/DataProvider.jsx'
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <DataProvider>
-      <App />
-    </DataProvider>
-  </StrictMode>,
+  
+  <DataProvider>
+    <App />
+  </DataProvider>,
 )

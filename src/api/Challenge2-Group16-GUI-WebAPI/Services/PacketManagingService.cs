@@ -71,12 +71,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public async Task SetTargetRequest(string socketId, RegisteredClient client, byte dataType, double data)
+        public async Task<bool> SetTargetRequest(string socketId, RegisteredClient client, byte dataType, float data)
         {
             if(dataType > 2)
             {
                 await _packetHandlingService.InternalErrorResponse(socketId);
-                return;
+                return false;
             }
 
             byte flag = 0b00010000; // binary command data
@@ -88,13 +88,13 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             if (packetSignature == null)
             {
                 await _packetHandlingService.InternalErrorResponse(socketId);
-                return;
+                return false;
             }
 
             packet.PacketSignature = packetSignature;
 
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+            return await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
         public async Task<DeviceStatusData?> DeviceStatusRequest(string socketId, RegisteredClient client)

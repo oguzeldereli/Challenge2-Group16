@@ -6,7 +6,7 @@ const api = 'https://localhost:443';
 export async function isAuthenticated() 
 {
     
-    const accessToken = localStorage.getItem("accessToken")
+    let accessToken = localStorage.getItem("accessToken")
     const refreshToken = localStorage.getItem("refreshToken")
     if(!refreshToken || !refreshToken.trim())
     {

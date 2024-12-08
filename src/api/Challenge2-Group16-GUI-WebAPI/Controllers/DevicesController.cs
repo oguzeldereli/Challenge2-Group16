@@ -35,25 +35,34 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         [Authorize]
         public async Task<IActionResult> Index()
         {
-            var deviceIds = _webSocketManagerService.GetAllBoundClients().Select(x => BitConverter.ToString(x.Identifier).Replace("-", "").ToLowerInvariant());
-            List<(string deviceId, uint status, float tempTarget, float phTarget, float rpmTarget)> values = new();
-            _webSocketManagerService.GetAllBoundClients().ToList().ForEach(async (device) =>
+            var deviceIds = (await _webSocketManagerService.GetAllBoundClients()).Select(x => BitConverter.ToString(x.Identifier).Replace("-", "").ToLowerInvariant());
+
+            var values = new List<(string deviceId, uint status, float tempTarget, float phTarget, float rpmTarget)>();
+
+            foreach (var device in await _webSocketManagerService.GetAllBoundClients())
             {
                 var socket = _webSocketManagerService.GetBoundSocket(device);
                 if (socket == null)
                 {
-                    return;
+                    continue;
                 }
 
                 var status = await _packetManagingService.DeviceStatusRequest(socket, device);
                 if (status == null)
                 {
-                    return;
+                    continue;
                 }
 
-                values.Add((BitConverter.ToString(device.Identifier).Replace("-", "").ToLowerInvariant(), status.Status, status.TempTarget, status.PhTarget, status.RPMTarget));
-            });
-            return Ok(values);
+                values.Add((
+                    BitConverter.ToString(device.Identifier).Replace("-", "").ToLowerInvariant(),
+                    status.Status,
+                    status.TempTarget,
+                    status.PhTarget,
+                    status.RPMTarget
+                ));
+            }
+
+            return Ok(values.Select(x => new { x.deviceId, x.status, x.tempTarget, x.phTarget, x.rpmTarget }));
         }
 
         [Authorize]
@@ -63,7 +72,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
             Guid clientId = await _sseClientService.AddClient(Response);
 
             try
-            {
+            {   
                 await Task.Delay(Timeout.Infinite, cancellationToken);
             }
             catch (TaskCanceledException)
@@ -81,7 +90,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
         public async Task<IActionResult> GetTargets(string id)
         {
             byte[] idHex = Convert.FromHexString(id);
-            var connectedRegisteredClient = _webSocketManagerService.GetAllBoundClients().Where(x => x.Identifier == idHex).FirstOrDefault();
+            var connectedRegisteredClient = (await _webSocketManagerService.GetAllBoundClients()).FirstOrDefault(x => x.Identifier.SequenceEqual(idHex));
             if (connectedRegisteredClient == null)
             {
                 return BadRequest(new
@@ -90,7 +99,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
                 });
             }
 
-            var databaseRegisteredClient = await _context.Clients.Include(x => x.DeviceStatusData).FirstOrDefaultAsync(c => c.Identifier == idHex);
+            var databaseRegisteredClient = await _context.Clients.Include(x => x.DeviceStatusData).FirstOrDefaultAsync(c => c.Identifier.SequenceEqual(idHex));
             if (databaseRegisteredClient == null)
             {
                 return BadRequest(new
@@ -99,7 +108,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
                 });
             }
 
-            if (databaseRegisteredClient.Identifier != connectedRegisteredClient.Identifier)
+            if (!databaseRegisteredClient.Identifier.SequenceEqual(connectedRegisteredClient.Identifier))
             {
                 return BadRequest(new
                 {
@@ -107,7 +116,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
                 });
             }
 
-            var lastDeviceStatus = databaseRegisteredClient.DeviceStatusData.OrderByDescending(x => x.TimeStamp).FirstOrDefault();
             var socketId = _webSocketManagerService.GetBoundSocket(connectedRegisteredClient);
             if (socketId == null)
             {
@@ -126,14 +134,59 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
                 });
             }
 
-            return Ok(new { status = response.Status, tempTarget = response.TempTarget, phTarget = response.PhTarget, rpmTargget = response.RPMTarget });
+            return Ok(new { deviceId = Convert.ToHexString(connectedRegisteredClient.Identifier).ToLowerInvariant(), status = response.Status, tempTarget = response.TempTarget, phTarget = response.PhTarget, rpmTarget = response.RPMTarget });
         }
 
-        [Authorize]
-        [HttpPost("{id}/status")]
-        public IActionResult SetTargets(string id, [FromForm] uint status, [FromForm] uint temperatureTarget, [FromForm] uint phTarget, [FromForm] uint rpmTarget)
+        [Authorize] 
+        [HttpPost("{id}/target")]
+        public async Task<IActionResult> SetTargets(string id, [FromBody] TargetRequest targetRequest)
         {
-            return Ok();
+            byte[] idHex = Convert.FromHexString(id);
+            var connectedRegisteredClient = (await _webSocketManagerService.GetAllBoundClients()).FirstOrDefault(x => x.Identifier.SequenceEqual(idHex));
+            if (connectedRegisteredClient == null)
+            {
+                return BadRequest(new
+                {
+                    error = "device_not_connected"
+                });
+            }
+
+            var databaseRegisteredClient = await _context.Clients.Include(x => x.DeviceStatusData).FirstOrDefaultAsync(c => c.Identifier.SequenceEqual(idHex));
+            if (databaseRegisteredClient == null)
+            {
+                return BadRequest(new
+                {
+                    error = "device_not_registered"
+                });
+            }
+
+            if (!databaseRegisteredClient.Identifier.SequenceEqual(connectedRegisteredClient.Identifier))
+            {
+                return BadRequest(new
+                {
+                    error = "device_not_matching"
+                });
+            }
+
+            var socketId = _webSocketManagerService.GetBoundSocket(connectedRegisteredClient);
+            if (socketId == null)
+            {
+                return BadRequest(new
+                {
+                    error = "no_socket"
+                });
+            }
+
+            var result = await _packetManagingService.SetTargetRequest(socketId, databaseRegisteredClient, targetRequest.dataType, targetRequest.target);
+            if (result == false)
+            {
+                return BadRequest(new
+                {
+                    error = "device_refused"
+                });
+            }
+
+            return Ok(new { success = result } );
         }
     }
 }

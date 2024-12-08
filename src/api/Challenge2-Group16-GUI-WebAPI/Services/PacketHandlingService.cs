@@ -217,7 +217,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         public async Task HandleBinaryData(string socketId, int command, RegisteredClient client, byte[] pureData, DataPacketModel packet)
         {
             DataPacketModel? packetModel = null;
-
             if (command == 0)
             {
                 var dataTypeToRead = pureData[0];
@@ -643,7 +642,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                     }
                     else if (dataTypeToStore == 3)
                     {
-                        for (int i = 9; i < dataCount * 24; i += 24) // data starts from 9th byte and each packet is 16 bytes
+                        for (int i = 9; i < dataCount * 24; i += 24) // data starts from 9th byte and each packet is 24 bytes
                         {
                             var timeStamp = DateTimeOffset.FromUnixTimeSeconds(BitConverter.ToInt64(pureData, i)).UtcDateTime;
                             var status = BitConverter.ToUInt32(pureData, i + 8);

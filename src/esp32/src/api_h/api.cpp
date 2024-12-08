@@ -72,10 +72,10 @@ void send_data_to_server(uint8_t *data, uint32_t dataLength)
     }
 }
 
-void send_value_to_server(uint8_t datatType, uint64_t timeStamp, float value)
+void send_value_to_server(uint8_t datatType, uint64_t timeStamp, float value, uint8_t *chainIdentifier)
 {
     uint16_t length;
-    uint8_t *packet = write_data_value_packet_normalized(datatType, timeStamp, value, &length);
+    uint8_t *packet = write_data_value_packet_normalized(datatType, timeStamp, value, &length, chainIdentifier);
 
     if (websocket_isConnected() && !is_auth_token_empty())
     {
@@ -83,10 +83,10 @@ void send_value_to_server(uint8_t datatType, uint64_t timeStamp, float value)
     }
 }
 
-void send_status_to_server(uint64_t timeStamp)
+void send_status_to_server(uint64_t timeStamp, uint8_t *chainIdentifier)
 {
     uint16_t length;
-    uint8_t *packet = write_device_status_packet_normalized(timeStamp, get_status(), &length);
+    uint8_t *packet = write_device_status_packet_normalized(timeStamp, get_status(), &length, chainIdentifier);
 
     if (websocket_isConnected() && !is_auth_token_empty())
     {

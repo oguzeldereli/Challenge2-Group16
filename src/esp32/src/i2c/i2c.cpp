@@ -61,7 +61,7 @@ void handle_response(int i)
             Serial.println("Received ff, ackking connection");
             i2c_set_is_connected(true);
             set_status(1);
-            send_status_to_server(getTime());
+            send_status_to_server(getTime(), 0);
 
             preferences_t *prefs = get_preferences();
             uint8_t data[5];
@@ -134,7 +134,7 @@ void handle_response(int i)
         if(dataType == 2)
             Serial.print("rpm: ");
         Serial.println(value);
-        send_value_to_server(dataType, getTime(), value);
+        send_value_to_server(dataType, getTime(), value, 0);
     }
 }
 

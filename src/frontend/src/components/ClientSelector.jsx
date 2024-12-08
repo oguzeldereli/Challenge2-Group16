@@ -9,7 +9,7 @@ import DocumentScannerIcon from '@mui/icons-material/DocumentScanner';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
 import { SignOut } from '../common/authUtils';
-import { ArrowBack, ArrowLeft } from '@mui/icons-material';
+import { ArrowBack, ArrowLeft, Stop } from '@mui/icons-material';
 
 const ClientSelector = ({ selectedDevice, devices, setSelectedDevice, variant }) => {
 
@@ -43,10 +43,14 @@ const ClientSelector = ({ selectedDevice, devices, setSelectedDevice, variant })
                 sx={{ 
                     flexGrow: '1',
                     width: "100%",
-                    border: "1px solid #aaaaaa"
+                    border: "1px solid #aaaaaa" 
                 }} 
                 placeholder="Select a device" 
-                onChange={(e) => setSelectedDevice(e.target.value)}>
+                value={selectedDevice ? (selectedDevice.deviceId || '') : ""}
+                onChange={(e, value) => {
+                    const device = devices.find(device => device.deviceId === value);
+                    setSelectedDevice(device);
+                    }}>
                     {devices && typeof devices !== "undefined" && devices.length > 0 && devices.map(device => (
                         <Option key={device.deviceId} value={device.deviceId}>{device.deviceId}</Option>
                     ))}
@@ -58,7 +62,12 @@ const ClientSelector = ({ selectedDevice, devices, setSelectedDevice, variant })
                     color="danger"
                     variant="soft"
                     sx={{p: 1, backgroundColor: "#e8cccc"}}>
-                    Not Operational
+                    <span>
+                        {!selectedDevice && "No Device Selected"}
+                        {selectedDevice && selectedDevice.status == 0 && "Not Ready"}
+                        {selectedDevice && selectedDevice.status == 1 && "Operational"}
+                        {selectedDevice && selectedDevice.status == 2 && "Paused"}
+                    </span>
                 </Chip>
             </Box>
 
@@ -66,7 +75,7 @@ const ClientSelector = ({ selectedDevice, devices, setSelectedDevice, variant })
             <Box sx={{display: "flex", gap: 1, alignItems: "center"}}>
                 <Tooltip title="Start Device" variant="solid"> 
                     <IconButton disabled={selectedDevice !== null}  variant="soft" sx={{border: "1px solid #5da67d", color: "#5da67d"}}>
-                        <PlayArrowIcon />
+                        {selectedDevice && selectedDevice.status == 1 ? <Stop /> : <PlayArrowIcon />}
                     </IconButton>
                 </Tooltip>
                 <Tooltip title="View Device Logs" variant="solid">

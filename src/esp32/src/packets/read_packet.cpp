@@ -78,7 +78,9 @@ void handle_data(uint8_t *data, uint32_t dataSize, uint8_t *packetIdentifier)
         {
             preferences_t *prefs = get_preferences();
             uint8_t dataType = data[2]; // 0 for temp, 1 for ph, 2 for rpm
-            float value = *((double *)data + 3);
+            float value;
+            memcpy(&value, data + 3, 4);
+            Serial.println(value);
             if (dataType == 0)
             {
                 prefs->tempTarget = value;
@@ -97,7 +99,7 @@ void handle_data(uint8_t *data, uint32_t dataSize, uint8_t *packetIdentifier)
         }
         else if (exec_command == 0x02) // get status
         {
-            send_status_to_server(getTime());
+            send_status_to_server(getTime(), packetIdentifier);
         }
     }
 

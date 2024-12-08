@@ -24,7 +24,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
 
         public async Task Invoke(HttpContext httpContext, WebSocketHandlerService webSocketService)
         {
-            Console.WriteLine("Request");
             if (httpContext.Request.Path == "/ws")
             {
                 if (httpContext.WebSockets.IsWebSocketRequest)
@@ -57,14 +56,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
                 }   
                 else
                 {
-                    Console.WriteLine("Not a WebSocket request");
                     httpContext.Response.StatusCode = 400;
                     return;
                 }
             }
             else
             {
-                Console.WriteLine("Request path is not /ws");
             }
 
             await _next(httpContext);

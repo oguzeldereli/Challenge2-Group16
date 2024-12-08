@@ -40,7 +40,7 @@ public class WebSocketManagerService
                 Console.WriteLine($"Removed socket {id} with client {clientId ?? "N/A"}");
                 if (clientId != null)
                 {
-                    var client = _context.Clients.FirstOrDefault(x => x.Id == clientId);
+                    var client = await _context.Clients.FirstOrDefaultAsync(x => x.Id == clientId);
                     if (client != null)
                     {
                         await _sseClientService.PublishAsJsonAsync("device", new
@@ -74,8 +74,7 @@ public class WebSocketManagerService
         {
             var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-
-            if (!_context.Clients.Any(x => x.Id == client.Id))
+            if (!(await _context.Clients.AnyAsync(x => x.Id == client.Id)))
             {
                 return;
             }
@@ -114,7 +113,7 @@ public class WebSocketManagerService
         {
             var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            if (!_context.Clients.Any(x => x.Id == client.Id))
+            if (!(await _context.Clients.AnyAsync(x => x.Id == client.Id)))
             {
                 return;
             }
@@ -136,13 +135,13 @@ public class WebSocketManagerService
         }
     }
 
-    public bool IsClientBound(WebSocket socket, RegisteredClient client)
+    public async Task<bool> IsClientBound(WebSocket socket, RegisteredClient client)
     {
         using (var scope = scopeFactory.CreateScope())
         {
             var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            if (!_context.Clients.Any(x => x.Id == client.Id))
+            if (!(await _context.Clients.AnyAsync(x => x.Id == client.Id)))
             {
                 return false;
             }
@@ -157,13 +156,13 @@ public class WebSocketManagerService
         }
     }
 
-    public bool IsClientBound(string socketId, RegisteredClient client)
+    public async Task<bool> IsClientBound(string socketId, RegisteredClient client)
     {
         using (var scope = scopeFactory.CreateScope())
         {
             var _context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            if (!_context.Clients.Any(x => x.Id == client.Id))
+            if (!(await _context.Clients.AnyAsync(x => x.Id == client.Id)))
             {
                 return false;
             }
@@ -178,7 +177,7 @@ public class WebSocketManagerService
         }
     }
 
-    public RegisteredClient? GetBoundClient(string id)
+    public async Task<RegisteredClient?> GetBoundClient(string id)
     {
         using (var scope = scopeFactory.CreateScope())
         {
@@ -189,7 +188,7 @@ public class WebSocketManagerService
                 return null;
             }
 
-            var client = _context.Clients.FirstOrDefault(x => x.Id == clientId);
+            var client = await _context.Clients.FirstOrDefaultAsync(x => x.Id == clientId);
             return client;
         }
     }
@@ -199,7 +198,7 @@ public class WebSocketManagerService
         return _sockets.FirstOrDefault(x => x.Value.Item2 == client.Id).Key;
     }
 
-    public List<RegisteredClient> GetAllBoundClients()
+    public async Task<List<RegisteredClient>> GetAllBoundClients()
     {
         using (var scope = scopeFactory.CreateScope())
         {
@@ -210,7 +209,7 @@ public class WebSocketManagerService
                 return new List<RegisteredClient>();
             }
 
-            var clients = _context.Clients.Where(x => clientIds.Contains(x.Id)).ToList();
+            var clients = await _context.Clients.Where(x => clientIds.Contains(x.Id)).ToListAsync();
             return clients;
         }
     }
