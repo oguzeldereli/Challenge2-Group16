@@ -83,11 +83,11 @@ public class Program
         builder.Services.AddSingleton<SseClientService>();
         builder.Services.AddSingleton<WebSocketManagerService>();
         builder.Services.AddSingleton<ChainService>();
-        builder.Services.AddSingleton<DataService>();
-        builder.Services.AddSingleton<PacketService>();
-        builder.Services.AddSingleton<RegisteredClientService>();
 
         // Scoped Services
+        builder.Services.AddScoped<RegisteredClientService>();
+        builder.Services.AddScoped<DataService>();
+        builder.Services.AddScoped<PacketService>();
         builder.Services.AddScoped<PacketHandlingService>();
         builder.Services.AddScoped<PacketManagingService>();
         builder.Services.AddScoped<WebSocketHandlerService>();
