@@ -110,15 +110,15 @@ void onReceive(int length)
       switch (parameterIdentifier) {
         case 0:
           desired_temp = parameter;
-          saveParameterEEPROM(EEPROM_ADDRESS_TEMP, desired_temp);
+          // saveParameterEEPROM(EEPROM_ADDRESS_TEMP, desired_temp);
           break;
         case 1:
           desired_pH = parameter;
-          saveParameterEEPROM(EEPROM_ADDRESS_PH, desired_pH);
+          // saveParameterEEPROM(EEPROM_ADDRESS_PH, desired_pH);
           break;
         case 2:
           desired_speed = parameter;
-          saveParameterEEPROM(EEPROM_ADDRESS_SPEED, desired_speed);
+          // saveParameterEEPROM(EEPROM_ADDRESS_SPEED, desired_speed);
           break;
         default:
           Serial.println("Invalid subsystem identifier!");
@@ -151,7 +151,7 @@ void setup() {
 
   Serial.begin(250000);
 
-  loadParametersEEPROM();
+  // loadParametersEEPROM();
 }
 
 void loop() {

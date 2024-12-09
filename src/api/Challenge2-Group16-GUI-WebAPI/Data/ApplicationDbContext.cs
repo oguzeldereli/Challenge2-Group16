@@ -16,21 +16,24 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
         : base(options) 
     {
         Interlocked.Increment(ref _instanceCount);
-        Console.WriteLine($"DbContext created. Total instances: {_instanceCount}");
+        // Console.WriteLine($"DbContext created. Total instances: {_instanceCount}");
+
+
+      
     }
 
     public override void Dispose()
     {
         base.Dispose();
         Interlocked.Decrement(ref _instanceCount);
-        Console.WriteLine($"DbContext disposed. Total instances: {_instanceCount}");
+        // Console.WriteLine($"DbContext disposed. Total instances: {_instanceCount}");
     }
 
     public override async ValueTask DisposeAsync()
     {
         await base.DisposeAsync();
         Interlocked.Decrement(ref _instanceCount);
-        Console.WriteLine($"DbContext disposed async. Total instances: {_instanceCount}");
+        // Console.WriteLine($"DbContext disposed async. Total instances: {_instanceCount}");
     }
 
     public DbSet<RegisteredClient> Clients { get; set; }
