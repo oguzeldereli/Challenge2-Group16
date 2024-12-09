@@ -40,7 +40,7 @@ export default function CurrentDataDisplay(props)
           </Typography>
           
           <ReverseAccordion>
-            <MarkedDataSlider currentTarget={props.targetValue} onChange={props.onTargetChange} min={props.min} max={props.max} step={props.step} marks={props.marks}  />
+            <MarkedDataSlider currentTarget={props.sliderValue} onChange={props.onTargetChange} min={props.min} max={props.max} step={props.step} marks={props.marks}  />
           </ReverseAccordion>
         </Box>
       );

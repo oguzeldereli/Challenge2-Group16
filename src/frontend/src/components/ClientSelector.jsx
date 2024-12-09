@@ -10,6 +10,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
 import { SignOut } from '../common/authUtils';
 import { ArrowBack, ArrowLeft, Stop } from '@mui/icons-material';
+import { PauseDevice, StartDevice } from '../common/apiUtils';
 
 const ClientSelector = ({ selectedDevice, devices, setSelectedDevice, variant }) => {
 
@@ -24,6 +25,22 @@ const ClientSelector = ({ selectedDevice, devices, setSelectedDevice, variant })
 
     const handleSignOutButtonClick = async () => {
         await SignOut();
+    };
+
+    const handlePauseStartClick = async () => {
+        if(selectedDevice)
+        {
+            if(selectedDevice.status === 1)
+            {
+                await PauseDevice(selectedDevice.deviceId);
+                return;
+            }   
+            else if(selectedDevice.status === 2)
+            {
+                await StartDevice(selectedDevice.deviceId);
+                return;
+            }
+        }
     };
 
     return (
@@ -48,8 +65,7 @@ const ClientSelector = ({ selectedDevice, devices, setSelectedDevice, variant })
                 placeholder="Select a device" 
                 value={selectedDevice ? (selectedDevice.deviceId || '') : ""}
                 onChange={(e, value) => {
-                    const device = devices.find(device => device.deviceId === value);
-                    setSelectedDevice(device);
+                    setSelectedDevice(value);
                     }}>
                     {devices && typeof devices !== "undefined" && devices.length > 0 && devices.map(device => (
                         <Option key={device.deviceId} value={device.deviceId}>{device.deviceId}</Option>
@@ -64,22 +80,22 @@ const ClientSelector = ({ selectedDevice, devices, setSelectedDevice, variant })
                     sx={{p: 1, backgroundColor: "#e8cccc"}}>
                     <span>
                         {!selectedDevice && "No Device Selected"}
-                        {selectedDevice && selectedDevice.status == 0 && "Not Ready"}
-                        {selectedDevice && selectedDevice.status == 1 && "Operational"}
-                        {selectedDevice && selectedDevice.status == 2 && "Paused"}
+                        {selectedDevice && selectedDevice.status === 0 && "Not Ready"}
+                        {selectedDevice && selectedDevice.status === 1 && "Operational"}
+                        {selectedDevice && selectedDevice.status === 2 && "Paused"}
                     </span>
                 </Chip>
             </Box>
 
             {variant == "main" && (
             <Box sx={{display: "flex", gap: 1, alignItems: "center"}}>
-                <Tooltip title="Start Device" variant="solid"> 
-                    <IconButton disabled={selectedDevice !== null}  variant="soft" sx={{border: "1px solid #5da67d", color: "#5da67d"}}>
-                        {selectedDevice && selectedDevice.status == 1 ? <Stop /> : <PlayArrowIcon />}
+                <Tooltip title={selectedDevice && selectedDevice.status === 1 ? "Pause" : "Continue"} variant="solid"> 
+                    <IconButton onClick={handlePauseStartClick} disabled={!selectedDevice || selectedDevice.status === 0}  variant="soft" sx={{border: `1px solid ${selectedDevice && selectedDevice.status === 1 ? "#7d1212" : "#5da67d"}`}} color={selectedDevice && selectedDevice.status === 1 ? "danger" : "success"}>
+                        {selectedDevice && selectedDevice.status === 1 ? <Stop /> : <PlayArrowIcon />}
                     </IconButton>
                 </Tooltip>
                 <Tooltip title="View Device Logs" variant="solid">
-                    <IconButton disabled={selectedDevice !== null} onClick={handleLogButtonClick} variant="soft" sx={{border: "1px solid #4d71a1", color: "#4d71a1"}}>
+                    <IconButton disabled={!selectedDevice} onClick={handleLogButtonClick} variant="soft" sx={{border: "1px solid #4d71a1", color: "#4d71a1"}}>
                         <DocumentScannerIcon />
                     </IconButton>
                 </Tooltip>

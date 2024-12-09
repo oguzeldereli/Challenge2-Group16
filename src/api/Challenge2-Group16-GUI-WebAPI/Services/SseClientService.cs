@@ -60,10 +60,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                 var client = kvp.Value;
                 try
                 {
-                    await client.WriteAsync($"event: {eventType}\n");
-                    await client.WriteAsync($"data: ");
-                    await client.WriteAsync(JsonSerializer.Serialize(data));
-                    await client.WriteAsync($"\n\n");
+                    var message = $"event: {eventType}\ndata: {JsonSerializer.Serialize(data)}\n\n";
+                    await client.WriteAsync(message);
                     await client.Body.FlushAsync();
                 }
                 catch (Exception)

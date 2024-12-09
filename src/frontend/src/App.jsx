@@ -25,8 +25,12 @@ function App() {
   const [tempdata, setTempData] =  useState([]);
   const [phdata, setPhData] =  useState([]);
   const [rpmdata, setRpmData] =  useState([]);
-  const [selectedDevice, setSelectedDevice] =  useState(null);
+  const [selectedDeviceId, setSelectedDeviceId] =  useState(null);
   const [logs, setLogs] = useState([]);
+
+  const selectedDevice = selectedDeviceId
+    ? devices.find((device) => device.deviceId === selectedDeviceId)
+    : null;
 
   const handleErrorPacket = async (event) => {
     const errorData = JSON.parse(event.data);
@@ -52,18 +56,20 @@ function App() {
     }
     else if (data_type === "status") 
     {
-      const deviceId = deviceData.data.deviceId;
-      const status = deviceData.data.status;
-      const tempTarget = deviceData.data.tempTarget;
-      const phTarget = deviceData.data.phTarget;
-      const rpmTarget = deviceData.data.rpmTarget;
-      setDevices(prevState => 
-        prevState.map(device =>
-          device.deviceId === deviceId
-            ? { deviceId: deviceId, status: status, tempTarget: tempTarget, phTarget: phTarget, rpmTarget: rpmTarget  } // Update the object with new attributes
-            : device // Keep the object unchanged if deviceId doesn't match
-        )
-      );
+      const deviceId = deviceData.client_id;
+      const status = deviceData.data.data.status;
+      const tempTarget = deviceData.data.data.tempTarget;
+      const phTarget = deviceData.data.data.phTarget;
+      const rpmTarget = deviceData.data.data.rpmTarget;
+      
+      setDevices((prevState) => {
+        const index = prevState.findIndex((device) => device.deviceId === deviceId);
+        return prevState.map((device, i) =>
+          i === index
+            ? { ...device, status, tempTarget, phTarget, rpmTarget }
+            : device
+        );
+      });
     }
     else if (data_type === "temperature") 
     {
@@ -121,34 +127,21 @@ function App() {
     }
     else if (action === "remove") 
     {
-      setSelectedDevice((prevDevice) => {
-        if(prevDevice && prevDevice.deviceId === client_id)
-        {
-          setSelectedDevice(null);
-        }
-      });
+      if(selectedDeviceId && selectedDeviceId === client_id)
+      {
+        setSelectedDeviceId(null);
+      }
       setDevices((prevDevices) => prevDevices.filter(device => device.deviceId !== client_id));
     }
   };
 
-  function changeSelectedDevice(device)
+  function changeSelectedDevice(deviceId)
   {
-    if(device)
+    if(deviceId)
     {
-      setSelectedDevice(device);
+      setSelectedDeviceId(deviceId);
     }
   }
-    
-  useEffect(() => {
-
-      async function setAppStart() 
-      { 
-        setDevices(await getRegisteredAndConnectedDevices());
-        await startSSEConnection(handleDataPacket, handleErrorPacket, handleDevicePacket);
-      }
-
-      setAppStart();
-  }, []);
 
   return (
     <>
@@ -156,7 +149,7 @@ function App() {
         <Router>
           <Routes>
             <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Dashboard tempdata={tempdata} phdata={phdata} rpmdata={rpmdata} logs={logs} selectedDevice={selectedDevice} devices={devices} setSelectedDevice={changeSelectedDevice}/>} />
+              <Route path="/" element={<Dashboard setDevices={setDevices} handleDataPacket={handleDataPacket} handleDevicePacket={handleDevicePacket} handleErrorPacket={handleErrorPacket} tempdata={tempdata} phdata={phdata} rpmdata={rpmdata} logs={logs} selectedDevice={selectedDevice} devices={devices} setSelectedDevice={changeSelectedDevice}/>} />
               <Route path="/logs" element={<Logs logs={logs} selectedDevice={selectedDevice} devices={devices} setSelectedDevice={changeSelectedDevice}/>} />
             </Route>  
 

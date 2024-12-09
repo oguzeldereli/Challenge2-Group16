@@ -214,6 +214,136 @@ namespace Challenge2_Group16_GUI_WebAPI.Controllers
             });
             return Ok(new { success = result } );
         }
+
+
+        [Authorize]
+        [HttpPost("{id}/start")]
+        public async Task<IActionResult> StartDevice(string id)
+        {
+            byte[] idHex = Convert.FromHexString(id);
+            var connectedRegisteredClient = (await _webSocketManagerService.GetAllBoundClients()).FirstOrDefault(x => x.Identifier.SequenceEqual(idHex));
+            if (connectedRegisteredClient == null)
+            {
+                return BadRequest(new
+                {
+                    error = "device_not_connected"
+                });
+            }
+
+            var databaseRegisteredClient = await _context.Clients.Include(x => x.DeviceStatusData).FirstOrDefaultAsync(c => c.Identifier.SequenceEqual(idHex));
+            if (databaseRegisteredClient == null)
+            {
+                return BadRequest(new
+                {
+                    error = "device_not_registered"
+                });
+            }
+
+            if (!databaseRegisteredClient.Identifier.SequenceEqual(connectedRegisteredClient.Identifier))
+            {
+                return BadRequest(new
+                {
+                    error = "device_not_matching"
+                });
+            }
+
+            var socketId = _webSocketManagerService.GetBoundSocket(connectedRegisteredClient);
+            if (socketId == null)
+            {
+                return BadRequest(new
+                {
+                    error = "no_socket"
+                });
+            }
+
+            var result = await _packetManagingService.StartRequest(socketId, databaseRegisteredClient);
+            if (result == false)
+            {
+                return BadRequest(new
+                {
+                    error = "device_refused"
+                });
+            }
+
+            await _sseClientService.PublishAsJsonAsync("data", new
+            {
+                client_id = Convert.ToHexString(connectedRegisteredClient.Identifier).ToLowerInvariant(),
+                data = new
+                {
+                    data_type = "log",
+                    time_stamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds(),
+                    log_level = "Information",
+                    log_message = $"Client {Convert.ToHexString(connectedRegisteredClient.Identifier).ToLowerInvariant()} {(result ? "succeeded" : "failed")} in starting."
+                }
+            });
+
+            return Ok(new { success = result });
+        }
+
+        [Authorize]
+        [HttpPost("{id}/pause")]
+        public async Task<IActionResult> PauseDevice(string id)
+        {
+            byte[] idHex = Convert.FromHexString(id);
+            var connectedRegisteredClient = (await _webSocketManagerService.GetAllBoundClients()).FirstOrDefault(x => x.Identifier.SequenceEqual(idHex));
+            if (connectedRegisteredClient == null)
+            {
+                return BadRequest(new
+                {
+                    error = "device_not_connected"
+                });
+            }
+
+            var databaseRegisteredClient = await _context.Clients.Include(x => x.DeviceStatusData).FirstOrDefaultAsync(c => c.Identifier.SequenceEqual(idHex));
+            if (databaseRegisteredClient == null)
+            {
+                return BadRequest(new
+                {
+                    error = "device_not_registered"
+                });
+            }
+
+            if (!databaseRegisteredClient.Identifier.SequenceEqual(connectedRegisteredClient.Identifier))
+            {
+                return BadRequest(new
+                {
+                    error = "device_not_matching"
+                });
+            }
+
+            var socketId = _webSocketManagerService.GetBoundSocket(connectedRegisteredClient);
+            if (socketId == null)
+            {
+                return BadRequest(new
+                {
+                    error = "no_socket"
+                });
+            }
+
+            var result = await _packetManagingService.PauseRequest(socketId, databaseRegisteredClient);
+            if (result == false)
+            {
+                return BadRequest(new
+                {
+                    error = "device_refused"
+                });
+            }
+
+            await _sseClientService.PublishAsJsonAsync("data", new
+            {
+                client_id = Convert.ToHexString(connectedRegisteredClient.Identifier).ToLowerInvariant(),
+                data = new
+                {
+                    data_type = "log",
+                    time_stamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds(),
+                    log_level = "Information",
+                    log_message = $"Client {Convert.ToHexString(connectedRegisteredClient.Identifier).ToLowerInvariant()} {(result ? "succeeded" : "failed")} in pausing."
+                }
+            });
+
+            return Ok(new { success = result });
+        }
+
         [Authorize]
         [HttpGet("{id}/{type}")]
         public async Task<IActionResult> GetDeviceData(string id, string type, [FromQuery] long timeStamp1, [FromQuery] long timeStamp2)

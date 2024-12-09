@@ -1,6 +1,7 @@
 import { Box, Button, IconButton, Tooltip, Typography } from "@mui/joy";
 import { Input, Stack } from "@mui/joy";
 import { ArrowRightIcon, DateTimePicker } from "@mui/x-date-pickers";
+import { format } from "date-fns";
 
 
 export default function LogView(props)
@@ -14,20 +15,6 @@ export default function LogView(props)
     
     return (
         <Stack sx={{width: "100%", mt: 3}}>
-            <Stack direction="row" gap={2} sx={{mb: 3}} alignItems={"center"}>
-                <Typography sx={{fontSize: "22px", fontFamily: "'Host Grotesk', sans-serif"}}>
-                    View Logs from
-                </Typography>
-                <Box>
-                    <DateTimePicker label="Start date/time" slotProps={{ textField: { size: 'small'} }} />
-                </Box>
-                <Typography sx={{fontSize: "22px", fontFamily: "'Host Grotesk', sans-serif"}}>
-                    To
-                </Typography>
-                <Box>
-                    <DateTimePicker label="End date/time" slotProps={{ textField: { size: 'small' } }} />
-                </Box>
-            </Stack>
             <Box sx={{
                 minHeight: 500,    
                 overflowY: 'auto',
@@ -40,8 +27,8 @@ export default function LogView(props)
                 {props.logs.map((log, index) => {
                     let color = colorMap[log.type];
                     return (
-                        <Typography key={log.time + log.type + index}>
-                            <Typography fontFamily={"'Geist Mono', monospace"} color="black" level="body-sm">[{log.time}]</Typography>
+                        <Typography key={log.timeStamp.toString() + log.type + index}>
+                            <Typography fontFamily={"'Geist Mono', monospace"} color="black" level="body-sm">[{format(log.timeStamp, "pp")}]</Typography>
                             <Typography fontFamily={"'Geist Mono', monospace"} color={color} level="body-sm">[{log.type}] : </Typography>
                             <Typography fontFamily={"'Geist Mono', monospace"} color="black" level="body-sm">{log.message}</Typography>
                         </Typography>

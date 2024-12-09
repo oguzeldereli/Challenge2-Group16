@@ -66,13 +66,21 @@ void handle_data(uint8_t *data, uint32_t dataSize, uint8_t *packetIdentifier)
         uint8_t exec_command = data[1];
         if (exec_command == 0xff) // start
         {
-            set_status(1);
-            ack_server(packetIdentifier);
+            if(get_status() == 2)
+            {
+                set_status(1);
+                ack_server(packetIdentifier);
+                send_status_to_server(getTime(), 0);
+            }
         }
         else if (exec_command == 0x00) // pause
         {
-            set_status(2);
-            ack_server(packetIdentifier);
+            if(get_status() == 1)
+            {
+                set_status(2);
+                ack_server(packetIdentifier);
+                send_status_to_server(getTime(), 0);
+            }
         }
         else if (exec_command == 0x01) // set target
         {

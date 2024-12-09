@@ -16,6 +16,10 @@ export default function CurrentDataPanel(props)
     const [currentPH, setCurrentPH] = useState(0)
     const [currentRPM, setCurrentRPM] = useState(0)
 
+    const [currentTempSlider, setCurrentTempSlider] = useState(0)
+    const [currentPHSlider, setCurrentPHSlider] = useState(0)
+    const [currentRPMSlider, setCurrentRPMSlider] = useState(0)
+
     let debounceTimerTemp = useRef(null);
     let debounceTimerPH = useRef(null);
     let debounceTimerRPM = useRef(null);
@@ -26,7 +30,6 @@ export default function CurrentDataPanel(props)
         selectedDeviceRef.current = props.selectedDevice;
         if(selectedDeviceRef.current)
         {
-            console.log(selectedDeviceRef.current);
             setCurrentTargetTemp(props.selectedDevice.tempTarget);
             setCurrentTargetPH(props.selectedDevice.phTarget);
             setCurrentTargetRPM(props.selectedDevice.rpmTarget);
@@ -46,10 +49,12 @@ export default function CurrentDataPanel(props)
             const response = await setDeviceTarget(selectedDeviceRef.current.deviceId, 0, newValue);
             if(response.success === true)
             {
+                setCurrentTempSlider(newValue);
                 setCurrentTargetTemp(newValue);
             }
             else
             {
+                setCurrentTempSlider(currentTargetTemp);
                 console.log("device couldnt set target");
             }
         }
@@ -66,10 +71,12 @@ export default function CurrentDataPanel(props)
             const response = await setDeviceTarget(selectedDeviceRef.current.deviceId, 1, newValue);
             if(response.success === true)
             {
+                setCurrentPHSlider(newValue);
                 setCurrentTargetPH(newValue);
             }
             else
             {
+                setCurrentPHSlider(currentTargetPH);
                 console.log("device couldnt set target");
             }
         }
@@ -86,10 +93,12 @@ export default function CurrentDataPanel(props)
             const response = await setDeviceTarget(selectedDeviceRef.current.deviceId, 2, newValue);
             if(response.success === true)
             {
+                setCurrentRPMSlider(newValue);
                 setCurrentTargetRPM(newValue);
             }
             else
             {
+                setCurrentRPMSlider(currentTargetRPM);
                 console.log("device couldnt set target");
             }
         }
@@ -100,6 +109,7 @@ export default function CurrentDataPanel(props)
     }
 
     const debouncedHandleTempChange = useCallback((value) => {
+        setCurrentTempSlider(value);
         if (debounceTimerTemp.current) {
             clearTimeout(debounceTimerTemp.current);
         }
@@ -111,6 +121,7 @@ export default function CurrentDataPanel(props)
     }, []); 
 
     const debouncedHandlePHChange = useCallback((value) => {
+        setCurrentPHSlider(value);
         if (debounceTimerPH.current) {
             clearTimeout(debounceTimerPH.current);
         }
@@ -122,6 +133,7 @@ export default function CurrentDataPanel(props)
     }, []); 
 
     const debouncedHandleRPMChange = useCallback((value) => {
+        setCurrentRPMSlider(value);
         if (debounceTimerRPM.current) {
             clearTimeout(debounceTimerRPM.current);
         }
@@ -153,6 +165,10 @@ export default function CurrentDataPanel(props)
             const last_temp_data = device_temp_data.length > 0 ? device_temp_data[device_temp_data.length - 1].data.data : undefined;
             setCurrentTemp(last_temp_data);
         }
+        else
+        {
+            setCurrentTemp(null);
+        }
       }, [props.tempdata, props.selectedDevice]);
 
       useEffect(() => {
@@ -161,6 +177,10 @@ export default function CurrentDataPanel(props)
             const device_ph_data = props.phdata.filter(x => x.client_id === props.selectedDevice.deviceId);
             const last_ph_data = device_ph_data.length > 0 ? device_ph_data[device_ph_data.length - 1].data.data : undefined;
             setCurrentPH(last_ph_data);
+        }
+        else
+        {
+            setCurrentPH(null);
         }
       }, [props.phdata, props.selectedDevice]);
 
@@ -171,13 +191,17 @@ export default function CurrentDataPanel(props)
             const last_rpm_data = device_rpm_data.length > 0 ? device_rpm_data[device_rpm_data.length - 1].data.data : undefined;
             setCurrentRPM(last_rpm_data);
         }
+        else
+        {
+            setCurrentRPM(null);
+        }
       }, [props.rpmdata, props.selectedDevice]);
 
     return (
         <Stack direction="row" sx={{justifyContent: "between", width: "100%", backgroundColor: "white"}} gap={1}>
-            <CurrentDataDisplay currentValue={currentTemp} targetValue={currentTargetTemp} onTargetChange={(value) => debouncedHandleTempChange(value)} name="Temperature (°C)" min={25} max={35} step={0.1} marks={[{value: 25, label: "25°C"}, {value: 35, label: "35°C"}]}/>
-            <CurrentDataDisplay currentValue={currentPH} targetValue={currentTargetPH} onTargetChange={(value) => debouncedHandlePHChange(value)} name="pH" min={3} max={7} step={0.1} marks={[{value: 3, label: "3"}, {value: 7, label: "7"}]} />
-            <CurrentDataDisplay currentValue={currentRPM} targetValue={currentTargetRPM} onTargetChange={(value) => debouncedHandleRPMChange(value)} name="Stirring RPM" min={500} max={1300} step={10} marks={[{value: 500, label: "500"}, {value: 1300, label: "1300"}]} />
+            <CurrentDataDisplay sliderValue={currentTempSlider} currentValue={currentTemp} targetValue={currentTargetTemp} onTargetChange={(value) => debouncedHandleTempChange(value)} name="Temperature (°C)" min={25} max={35} step={0.1} marks={[{value: 25, label: "25°C"}, {value: 35, label: "35°C"}]}/>
+            <CurrentDataDisplay sliderValue={currentPHSlider} currentValue={currentPH} targetValue={currentTargetPH} onTargetChange={(value) => debouncedHandlePHChange(value)} name="pH" min={3} max={7} step={0.1} marks={[{value: 3, label: "3"}, {value: 7, label: "7"}]} />
+            <CurrentDataDisplay sliderValue={currentRPMSlider} currentValue={currentRPM} targetValue={currentTargetRPM} onTargetChange={(value) => debouncedHandleRPMChange(value)} name="Stirring RPM" min={500} max={1300} step={10} marks={[{value: 500, label: "500"}, {value: 1300, label: "1300"}]} />
         </Stack>
     )
 }

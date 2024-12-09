@@ -33,7 +33,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             _chainService = chainService;
         }
 
-        public async Task StartRequest(string socketId, RegisteredClient client)
+        public async Task<bool> StartRequest(string socketId, RegisteredClient client)
         {
             byte flag = 0b00010000; // binary command data
             byte[] data = { flag, 0xff }; // start command 0xff
@@ -43,16 +43,16 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             if (packetSignature == null)
             {
                 await _packetHandlingService.InternalErrorResponse(socketId);
-                return;
+                return false;
             }
 
             packet.PacketSignature = packetSignature;
 
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+            return await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
-        public async Task PauseRequest(string socketId, RegisteredClient client)
+        public async Task<bool> PauseRequest(string socketId, RegisteredClient client)
         {
             byte flag = 0b00010000; // binary command data
             byte[] data = { flag, 0x00 }; // stop command 0x00
@@ -62,13 +62,13 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             if (packetSignature == null)
             {
                 await _packetHandlingService.InternalErrorResponse(socketId);
-                return;
+                return false;
             }
 
             packet.PacketSignature = packetSignature;
 
             await _webSocketManagerService.SendAsync(socketId, packet.GetPacket());
-            await _chainService.ExpectAck(packet.ChainIdentifier);
+            return await _chainService.ExpectAck(packet.ChainIdentifier);
         }
 
         public async Task<bool> SetTargetRequest(string socketId, RegisteredClient client, byte dataType, float data)
