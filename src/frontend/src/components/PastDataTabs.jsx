@@ -5,10 +5,10 @@ import Tab, { tabClasses } from '@mui/joy/Tab';
 import { styled } from '@mui/material/styles';
 import { TabPanel } from '@mui/joy';
 import { GaugeContainer, GaugeReferenceArc, GaugeValueArc } from '@mui/x-charts';
-import TemperatureDataPanel from './TemperatureDataPanel';
-import PHDataPanel from './PHDataPanel';
-import RPMDataPanel from './RPMDataPanel';
+import DataPanel from './DataPanel';
 import { Typography } from '@mui/material';
+import DataPanelWithQuery from './DataPanelWithQuery';
+import { PropaneSharp } from '@mui/icons-material';
 
 const CustomTab = styled(Tab)(({ theme }) => ({
     border: "1px solid #764ba2",
@@ -23,7 +23,7 @@ const CustomTab = styled(Tab)(({ theme }) => ({
     },
   }));
 
-function PastDataTabs() {
+function PastDataTabs({selectedDevice}) {
   return (
     <>
     <Typography fontSize={22} fontFamily={"'Host Grotesk', sans-serif"}>
@@ -50,13 +50,13 @@ function PastDataTabs() {
             </CustomTab>
         </TabList>
         <TabPanel value={0}>
-            <TemperatureDataPanel timeSetting="interval"/>
+            <DataPanelWithQuery dataType="temp" selectedDevice={selectedDevice}/>
         </TabPanel>
         <TabPanel value={1}>
-           <PHDataPanel timeSetting="interval"/>
+            <DataPanelWithQuery dataType="ph" selectedDevice={selectedDevice}/>
         </TabPanel>
         <TabPanel value={2}>
-            <RPMDataPanel timeSetting="interval"/>
+            <DataPanelWithQuery dataType="rpm" selectedDevice={selectedDevice}/>
         </TabPanel>
     </Tabs>
     </>

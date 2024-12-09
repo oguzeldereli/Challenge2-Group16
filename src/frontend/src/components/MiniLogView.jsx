@@ -1,10 +1,15 @@
 import { Box, Button, IconButton, Tooltip, Typography } from "@mui/joy";
 import { Input, Stack } from "@mui/joy";
 import { ArrowRightIcon } from "@mui/x-date-pickers";
+import { useEffect } from "react";
 
 
 export default function MiniLogView(props)
 {
+    useEffect(() => {
+        console.log(props.logs);
+    }, [props.logs]);
+
     const colorMap = {
         "Error": "danger",
         "Warning": "warnings",

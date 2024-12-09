@@ -16,12 +16,12 @@ export default function Dashboard(props)
             <Navbar />
             <Stack direction="column" sx={{maxWidth: "1200px", margin: "auto", px: 2}}>
                 <ClientSelector variant="main" selectedDevice={props.selectedDevice} devices={props.devices} setSelectedDevice={props.setSelectedDevice} />
-                <CurrentDataPanel selectedDevice={props.selectedDevice} data={props.data} />
+                <CurrentDataPanel selectedDevice={props.selectedDevice} tempdata={props.tempdata} phdata={props.phdata} rpmdata={props.rpmdata}/>
                 <Stack direction="row" gap={3}>
-                    <CurrentDataTabs />
+                    <CurrentDataTabs selectedDevice={props.selectedDevice} tempdata={props.tempdata} phdata={props.phdata} rpmdata={props.rpmdata} />
                     <MiniLogView logs={props.logs}/>
                 </Stack>
-                <PastDataTabs />
+                <PastDataTabs selectedDevice={props.selectedDevice}/>
             </Stack>
         </>
     )

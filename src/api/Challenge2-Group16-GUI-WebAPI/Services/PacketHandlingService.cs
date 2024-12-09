@@ -8,8 +8,10 @@ using NuGet.Packaging;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Challenge2_Group16_GUI_WebAPI.Services
 {
@@ -21,6 +23,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         private readonly SseClientService _sseClientService;
         private readonly WebSocketManagerService _webSocketManagerService;
         private readonly ChainService _chainService;
+        private readonly RegisteredClientService _registeredClientService;
 
         public PacketHandlingService(
             DataService dataService,
@@ -28,7 +31,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             IConfiguration configuration,
             SseClientService sseClientService,
             WebSocketManagerService webSocketManagerService,
-            ChainService chainService)
+            ChainService chainService,
+            RegisteredClientService registeredClientService)
         {
             _dataService = dataService;
             _packetService = packetService;
@@ -36,6 +40,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
             _sseClientService = sseClientService;
             _webSocketManagerService = webSocketManagerService;
             _chainService = chainService;
+            _registeredClientService = registeredClientService;
         }
 
         public async Task MalformedPacketResponse(string socketId)
@@ -172,8 +177,8 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
             dataType: 
             0 or Temp for Temperature
-            1 or Stir for Stirring RPM
-            2 or PH for PH
+            1 for PH
+            2 for Stirring RPM
             3 or DevS for Device Status
             4 for Logs
 
@@ -569,7 +574,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
                             await _sseClientService.PublishAsJsonAsync("data", new
                             {
-                                client_id = client.Identifier,
+                                client_id = Convert.ToHexString(client.Identifier).ToLowerInvariant(),
                                 data = new
                                 {
                                     data_type = "temperature",
@@ -577,41 +582,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                     data = temperature
                                 }
                             });
+                            Console.WriteLine($"Received Temperature data {temperature} at {timeStamp} from {client.Identifier}");
                             await _dataService.StoreDataToDbAsync<TempData>(client, tempData);
                             _chainService.RespondChain(packet.ChainIdentifier, tempData);
                         }
                     }
                     else if (dataTypeToStore == 1)
-                    {
-                        for (int i = 9; i < dataCount * 12; i += 12) // data starts from 9th byte and each packet is 16 bytes
-                        {
-                            var timeStamp = DateTimeOffset.FromUnixTimeSeconds(BitConverter.ToInt64(pureData, i)).UtcDateTime;
-                            var rpm = BitConverter.ToSingle(pureData, i + 8);
-
-                            var rpmData = new StirringData()
-                            {
-                                Client = client,
-                                ClientId = client.Id,
-                                TimeStamp = timeStamp,
-                                RPM = rpm
-                            };
-
-                            await _sseClientService.PublishAsJsonAsync("data", new
-                            {
-                                client_id = client.Identifier,
-                                data = new
-                                {
-                                    data_type = "rpm",
-                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
-                                    data = rpm
-                                }
-                            });
-                            await _dataService.StoreDataToDbAsync<StirringData>(client, rpmData);
-                            _chainService.RespondChain(packet.ChainIdentifier, rpmData);
-                        }
-
-                    }
-                    else if (dataTypeToStore == 2)
                     {
                         for (int i = 9; i < dataCount * 12; i += 12) // data starts from 9th byte and each packet is 16 bytes
                         {
@@ -628,7 +604,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
                             await _sseClientService.PublishAsJsonAsync("data", new
                             {
-                                client_id = client.Identifier,
+                                client_id = Convert.ToHexString(client.Identifier).ToLowerInvariant(),
                                 data = new
                                 {
                                     data_type = "ph",
@@ -636,8 +612,41 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                                     data = ph
                                 }
                             });
+                            Console.WriteLine($"Received PH data {ph} at {timeStamp} from {client.Identifier}");
                             await _dataService.StoreDataToDbAsync<pHData>(client, phData);
                             _chainService.RespondChain(packet.ChainIdentifier, phData);
+                            
+                        }
+
+                    }
+                    else if (dataTypeToStore == 2)
+                    {
+                        for (int i = 9; i < dataCount * 12; i += 12) // data starts from 9th byte and each packet is 16 bytes
+                        {
+                            var timeStamp = DateTimeOffset.FromUnixTimeSeconds(BitConverter.ToInt64(pureData, i)).UtcDateTime;
+                            var rpm = BitConverter.ToSingle(pureData, i + 8);
+
+                            var rpmData = new StirringData()
+                            {
+                                Client = client,
+                                ClientId = client.Id,
+                                TimeStamp = timeStamp,
+                                RPM = rpm
+                            };
+
+                            await _sseClientService.PublishAsJsonAsync("data", new
+                            {
+                                client_id = Convert.ToHexString(client.Identifier).ToLowerInvariant(),
+                                data = new
+                                {
+                                    data_type = "rpm",
+                                    time_stamp = new DateTimeOffset(timeStamp).ToUnixTimeSeconds(),
+                                    data = rpm
+                                }
+                            });
+                            Console.WriteLine($"Received RPM data {rpm} at {timeStamp} from {client.Identifier}");
+                            await _dataService.StoreDataToDbAsync<StirringData>(client, rpmData);
+                            _chainService.RespondChain(packet.ChainIdentifier, rpmData);
                         }
                     }
                     else if (dataTypeToStore == 3)
@@ -663,7 +672,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
                             await _sseClientService.PublishAsJsonAsync("data", new
                             {
-                                client_id = client.Identifier,
+                                client_id = Convert.ToHexString(client.Identifier).ToLowerInvariant(),
                                 data = new
                                 {
                                     data_type = "status",
@@ -701,7 +710,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
                             await _sseClientService.PublishAsJsonAsync("data", new
                             {
-                                client_id = client.Identifier,
+                                client_id = Convert.ToHexString(client.Identifier).ToLowerInvariant(),
                                 data = new
                                 {
                                     data_type = "log",
@@ -777,12 +786,245 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
         {
             await _sseClientService.PublishAsJsonAsync("error", new 
             { 
-                client_id = client.Identifier, 
+                client_id = Convert.ToHexString(client.Identifier).ToLowerInvariant(), 
                 time_stamp = packet.SentAt,
                 error = error 
             }); 
 
             await AckResponse(socketId, packet.ChainIdentifier); // just ack the error for now
+        }
+
+        public async Task ParseRegisterPacketAsync(string socketId, DataPacketModel packet)
+        {
+
+            if (packet.AuthorizationToken.SequenceEqual(new byte[16]) &&
+                    packet.PacketError == (uint)PacketError.None &&
+                    packet.DataSize == 36 &&
+                    packet.PacketData.Length == 36 &&
+                    packet.PacketSignature.SequenceEqual(new byte[32]) &&
+                    _packetService.ValidatePacket(packet))
+            {
+                byte[] clientId = packet.PacketData.Take(32).ToArray();
+                ClientType clientType = (ClientType)BitConverter.ToUInt32(packet.PacketData.Skip(32).Take(4).ToArray(), 0);
+                var registerResult = await _registeredClientService.RegisterClientAsync(clientId, clientType);
+                if (registerResult == null)
+                {
+                    await InternalErrorResponse(socketId);
+                    return;
+                }
+
+                await RegisterResponse(socketId, registerResult, registerResult.Secret, registerResult.SignatureKey);
+                return;
+            }
+
+            await InvalidPacketResponse(socketId);
+            return;
+        }
+
+        public async Task ParseAuthPacketAsync(string socketId, DataPacketModel packet)
+        {
+
+            if (packet.AuthorizationToken.SequenceEqual(new byte[16]) &&
+                    packet.PacketError == (uint)PacketError.None &&
+                    packet.DataSize == 64 &&
+                    packet.PacketData.Length == 64 &&
+                    _packetService.ValidatePacket(packet))
+            {
+                byte[] clientId = packet.PacketData.Take(32).ToArray();
+                byte[] clientSecret = packet.PacketData.Skip(32).Take(32).ToArray();
+
+                var temporaryAuthToken = await _registeredClientService.AuthorizeClientAsync(socketId, clientId, clientSecret);
+                if (temporaryAuthToken == null)
+                {
+                    await InternalErrorResponse(socketId);
+                    return;
+                }
+
+                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(temporaryAuthToken);
+                if (registeredClient == null)
+                {
+                    await InternalErrorResponse(socketId);
+                    return;
+                }
+
+                await AuthResponse(socketId, registeredClient, temporaryAuthToken);
+                return;
+            }
+
+            await InvalidPacketResponse(socketId);
+            return;
+        }
+
+        public async Task ParseRevokeAuthPacketAsync(string socketId, DataPacketModel packet)
+        {
+
+            if (packet.PacketError == (uint)PacketError.None &&
+                    packet.DataSize == 0 &&
+                    packet.PacketData.Length == 0 &&
+                    _packetService.ValidatePacket(packet))
+            {
+                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
+                if (registeredClient == null)
+                {
+                    await InvalidPacketResponse(socketId);
+                    return;
+                }
+
+                if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
+                {
+                    await InternalErrorResponse(socketId);
+                    return;
+                }
+
+                if (!await _registeredClientService.RevokeClientAsync(packet.AuthorizationToken))
+                {
+                    await InternalErrorResponse(socketId);
+                    return;
+                }
+
+                await RevokeAuthResponse(socketId, registeredClient);
+                return;
+            }
+
+            await InvalidPacketResponse(socketId);
+            return;
+        }
+
+        public async Task ParseDataPacketAsync(string socketId, DataPacketModel packet)
+        {
+
+            if (packet.PacketError == (uint)PacketError.None &&
+                    _packetService.ValidatePacket(packet))
+            {
+                var decryptedData = _packetService.GetData(packet);
+                if (decryptedData == null)
+                {
+                    await InternalErrorResponse(socketId);
+                    return;
+                }
+
+                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
+                if (registeredClient == null)
+                {
+                    await InvalidPacketResponse(socketId);
+                    return;
+                }
+
+                if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
+                {
+                    await InternalErrorResponse(socketId);
+                    return;
+                }
+
+                await HandleDataAsync(socketId, registeredClient, decryptedData, packet);
+                return;
+            }
+
+            await InvalidPacketResponse(socketId);
+            return;
+        }
+
+        public async Task ParseAckPacketAsync(string socketId, DataPacketModel packet)
+        {
+            if (packet.PacketError == (uint)PacketError.None &&
+                    _packetService.ValidatePacket(packet))
+            {
+                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
+                if (registeredClient == null)
+                {
+                    await InvalidPacketResponse(socketId);
+                    return;
+                }
+
+                if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
+                {
+                    await InternalErrorResponse(socketId);
+                    return;
+                }
+
+                if (packet.ChainIdentifier == null || packet.ChainIdentifier.Length != 16)
+                {
+                    await InvalidPacketResponse(socketId);
+                    return;
+                }
+
+                var ackResult = _chainService.AckChain(packet.ChainIdentifier);
+                return;
+            }
+
+            await InvalidPacketResponse(socketId);
+            return;
+        }
+
+        public async Task ParseErrorPacketAsync(string socketId, DataPacketModel packet)
+        {
+
+            if (!_packetService.ValidatePacket(packet))
+            {
+                await InvalidPacketResponse(socketId);
+                return;
+            }
+
+            var decryptedData = _packetService.GetData(packet);
+            if (decryptedData == null)
+            {
+                await InternalErrorResponse(socketId);
+                return;
+            }
+
+            var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
+            if (registeredClient == null)
+            {
+                await InvalidPacketResponse(socketId);
+                return;
+            }
+
+            if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
+            {
+                await InternalErrorResponse(socketId);
+                return;
+            }
+
+            await HandleErrorAsync(socketId, registeredClient, (PacketError)packet.PacketError, decryptedData, packet);
+            return;
+        }
+
+        public async Task ParseAndHandlePacketAsync(string socketId, DataPacketModel packet)
+        {
+
+            if (packet.PacketType == (uint)PacketType.Register)
+            {
+                await ParseRegisterPacketAsync(socketId, packet);
+                return;
+            }
+            else if (packet.PacketType == (uint)PacketType.Auth)
+            {
+                await ParseAuthPacketAsync(socketId, packet);
+                return;
+            }
+            else if (packet.PacketType == (uint)PacketType.RevokeAuth)
+            {
+                await ParseRevokeAuthPacketAsync(socketId, packet);
+                return;
+            }
+            else if (packet.PacketType == (uint)PacketType.Ack)
+            {
+                await ParseAckPacketAsync(socketId, packet);
+                return;
+            }
+            else if (packet.PacketType == (uint)PacketType.Data)
+            {
+                await ParseDataPacketAsync(socketId, packet);
+                return;
+            }
+            else if (packet.PacketType == (uint)PacketType.Error)
+            {
+                await ParseErrorPacketAsync(socketId, packet);
+                return;
+            }
+
+            await InvalidPacketResponse(socketId);
+            return;
         }
     }
 }

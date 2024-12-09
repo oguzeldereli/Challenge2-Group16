@@ -1,4 +1,4 @@
-import * as React from 'react';
+import { useEffect } from 'react'; 
 import Box from '@mui/joy/Box';
 import Typography from '@mui/joy/Typography';
 import SvgIcon from '@mui/joy/SvgIcon';
@@ -9,6 +9,7 @@ import ReverseAccordion from './ReverseAccordion';
 
 export default function CurrentDataDisplay(props)
 {
+
     return (
         <Box
           sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, p: 5, width: "100%", backgroundColor: "white"}}
@@ -19,7 +20,7 @@ export default function CurrentDataDisplay(props)
                 <Typography
                     sx={{ fontSize: 'xl4', lineHeight: 1, textAlign: "center"  }}
                 >
-                    {!props.currentValue ? "N/A" : props.currentValue}
+                    {!props.currentValue ? "N/A" : <span>{props.currentValue}</span>}
                 </Typography>
             </Stack>
             <Stack direction="column" >
@@ -39,7 +40,7 @@ export default function CurrentDataDisplay(props)
           </Typography>
           
           <ReverseAccordion>
-            <MarkedDataSlider currentTarget={props.value} onChange={props.onTargetChange} min={props.min} max={props.max} step={props.step} marks={props.marks}  />
+            <MarkedDataSlider currentTarget={props.targetValue} onChange={props.onTargetChange} min={props.min} max={props.max} step={props.step} marks={props.marks}  />
           </ReverseAccordion>
         </Box>
       );

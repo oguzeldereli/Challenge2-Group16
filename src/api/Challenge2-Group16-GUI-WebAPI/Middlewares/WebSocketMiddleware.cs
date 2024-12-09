@@ -14,15 +14,18 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
     {
         private readonly RequestDelegate _next;
         private readonly WebSocketManagerService _webSocketManagerService;
+        private readonly ChainService _chainService;
 
         public WebSocketMiddleware(RequestDelegate next,
-            WebSocketManagerService webSocketManagerService)
+            WebSocketManagerService webSocketManagerService,
+            ChainService chainService)
         {
             _next = next;
             _webSocketManagerService = webSocketManagerService;
+            _chainService = chainService;
         }
 
-        public async Task Invoke(HttpContext httpContext, WebSocketHandlerService webSocketService)
+        public async Task Invoke(HttpContext httpContext, WebSocketHandlerService webSocketHandlerService)
         {
             if (httpContext.Request.Path == "/ws")
             {
@@ -36,10 +39,12 @@ namespace Challenge2_Group16_GUI_WebAPI.Middlewares
                         _webSocketManagerService.AddSocket(socketId, webSocket);
                         Console.WriteLine($"Added socket {socketId} to list of connected socets");
 
-                        var handler = webSocketService.HandleAsync(webSocket, socketId);
-                        var ping = webSocketService.SendPing(webSocket);
+                        var handler = webSocketHandlerService.HandleAsync(webSocket, socketId);
+                        var ping = webSocketHandlerService.SendPing(webSocket);
 
                         await Task.WhenAny(handler, ping);
+                        
+
                     }
                     catch (Exception ex)
                     {

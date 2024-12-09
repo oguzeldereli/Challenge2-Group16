@@ -102,6 +102,7 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
             return await set
                 .Where(x => x.ClientId == client.Id && x.TimeStamp >= StartTime && x.TimeStamp <= EndTime)
+                .OrderBy(x => x.TimeStamp)
                 .ToListAsync();
         }
     }
