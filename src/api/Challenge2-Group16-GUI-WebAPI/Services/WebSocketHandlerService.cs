@@ -16,27 +16,20 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
     public class WebSocketHandlerService
     {
         private readonly ILogger<WebSocketHandlerService> _logger;
-        private readonly PacketService _packetService;
-        private readonly RegisteredClientService _registeredClientService;
         private readonly WebSocketManagerService _webSocketManagerService;
         private readonly PacketHandlingService _packetHandlingService;
-        private readonly ChainService _chainService;
-
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
         public WebSocketHandlerService(
             ILogger<WebSocketHandlerService> logger,
-            PacketService packetService,
-            RegisteredClientService registeredClientService,
             WebSocketManagerService webSocketManagerService,
             PacketHandlingService packetHandlingService,
-            ChainService chainService)
+            IServiceScopeFactory serviceScopeFactory)
         {
             _logger = logger;
-            _packetService = packetService;
-            _registeredClientService = registeredClientService;
             _webSocketManagerService = webSocketManagerService;
             _packetHandlingService = packetHandlingService;
-            _chainService = chainService;
+            _serviceScopeFactory = serviceScopeFactory;
         }
 
         private async Task<(WebSocketMessageType, byte[])> ReceiveAsync(WebSocket socket)
@@ -68,249 +61,6 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
 
                 return (result.MessageType, ms.ToArray());
             }
-        }
-
-        private async Task CloseAsync(WebSocket socket, WebSocketCloseStatus status, string closeReason)
-        {
-            if (socket.State != WebSocketState.Open)
-            {
-                return;
-            }
-
-            await socket.CloseAsync(status, closeReason, CancellationToken.None);
-        }
-
-        public async Task ParseRegisterPacketAsync(string socketId, DataPacketModel packet)
-        {
-
-            if (packet.AuthorizationToken.SequenceEqual(new byte[16]) &&
-                    packet.PacketError == (uint)PacketError.None &&
-                    packet.DataSize == 36 &&
-                    packet.PacketData.Length == 36 &&
-                    packet.PacketSignature.SequenceEqual(new byte[32]) &&
-                    _packetService.ValidatePacket(packet))
-            {
-                byte[] clientId = packet.PacketData.Take(32).ToArray();
-                ClientType clientType = (ClientType)BitConverter.ToUInt32(packet.PacketData.Skip(32).Take(4).ToArray(), 0);
-                var registerResult = await _registeredClientService.RegisterClientAsync(clientId, clientType);
-                if (registerResult == null)
-                {
-                    await _packetHandlingService.InternalErrorResponse(socketId);
-                    return;
-                }
-
-                await _packetHandlingService.RegisterResponse(socketId, registerResult, registerResult.Secret, registerResult.SignatureKey);
-                return;
-            }
-
-            await _packetHandlingService.InvalidPacketResponse(socketId);
-            return;
-        }
-
-        public async Task ParseAuthPacketAsync(string socketId, DataPacketModel packet)
-        {
-
-            if (packet.AuthorizationToken.SequenceEqual(new byte[16]) &&
-                    packet.PacketError == (uint)PacketError.None &&
-                    packet.DataSize == 64 &&
-                    packet.PacketData.Length == 64 &&
-                    _packetService.ValidatePacket(packet))
-            {
-                byte[] clientId = packet.PacketData.Take(32).ToArray();
-                byte[] clientSecret = packet.PacketData.Skip(32).Take(32).ToArray();
-
-                var temporaryAuthToken = await _registeredClientService.AuthorizeClientAsync(socketId, clientId, clientSecret);
-                if (temporaryAuthToken == null)
-                {
-                    await _packetHandlingService.InternalErrorResponse(socketId);
-                    return;
-                }
-
-                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(temporaryAuthToken);
-                if (registeredClient == null)
-                {
-                    await _packetHandlingService.InternalErrorResponse(socketId);
-                    return;
-                }
-
-                await _packetHandlingService.AuthResponse(socketId, registeredClient, temporaryAuthToken);
-                return;
-            }
-
-            await _packetHandlingService.InvalidPacketResponse(socketId);
-            return;
-        }
-
-        public async Task ParseRevokeAuthPacketAsync(string socketId, DataPacketModel packet)
-        {
-
-            if (packet.PacketError == (uint)PacketError.None &&
-                    packet.DataSize == 0 &&
-                    packet.PacketData.Length == 0 &&
-                    _packetService.ValidatePacket(packet))
-            {
-                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
-                if (registeredClient == null)
-                {
-                    await _packetHandlingService.InvalidPacketResponse(socketId);
-                    return;
-                }
-
-                if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
-                {
-                    await _packetHandlingService.InternalErrorResponse(socketId);
-                    return;
-                }
-
-                if (!await _registeredClientService.RevokeClientAsync(packet.AuthorizationToken))
-                {
-                    await _packetHandlingService.InternalErrorResponse(socketId);
-                    return;
-                }
-
-                await _packetHandlingService.RevokeAuthResponse(socketId, registeredClient);
-                return;
-            }
-
-            await _packetHandlingService.InvalidPacketResponse(socketId);
-            return;
-        }
-
-        public async Task ParseDataPacketAsync(string socketId, DataPacketModel packet)
-        {
-
-            if (packet.PacketError == (uint)PacketError.None &&
-                    _packetService.ValidatePacket(packet))
-            {
-                var decryptedData = _packetService.GetData(packet);
-                if (decryptedData == null)
-                {
-                    await _packetHandlingService.InternalErrorResponse(socketId);
-                    return;
-                }
-
-                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
-                if (registeredClient == null)
-                {
-                    await _packetHandlingService.InvalidPacketResponse(socketId);
-                    return;
-                }
-
-                if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
-                {
-                    await _packetHandlingService.InternalErrorResponse(socketId);
-                    return;
-                }
-
-                await _packetHandlingService.HandleDataAsync(socketId, registeredClient, decryptedData, packet);
-                return;
-            }
-
-            await _packetHandlingService.InvalidPacketResponse(socketId);
-            return;
-        }
-
-        public async Task ParseAckPacketAsync(string socketId, DataPacketModel packet)
-        {
-            if (packet.PacketError == (uint)PacketError.None &&
-                    _packetService.ValidatePacket(packet))
-            {
-                var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
-                if (registeredClient == null)
-                {
-                    await _packetHandlingService.InvalidPacketResponse(socketId);
-                    return;
-                }
-
-                if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
-                {
-                    await _packetHandlingService.InternalErrorResponse(socketId);
-                    return;
-                }
-
-                if (packet.ChainIdentifier == null || packet.ChainIdentifier.Length != 16)
-                {
-                    await _packetHandlingService.InvalidPacketResponse(socketId);
-                    return;
-                }
-
-                var ackResult = _chainService.AckChain(packet.ChainIdentifier);
-                return;
-            }
-
-            await _packetHandlingService.InvalidPacketResponse(socketId);
-            return;
-        }
-
-        public async Task ParseErrorPacketAsync(string socketId, DataPacketModel packet)
-        {
-
-            if (!_packetService.ValidatePacket(packet))
-            {
-                await _packetHandlingService.InvalidPacketResponse(socketId);
-                return;
-            }
-
-            var decryptedData = _packetService.GetData(packet);
-            if (decryptedData == null)
-            {
-                await _packetHandlingService.InternalErrorResponse(socketId);
-                return;
-            }
-
-            var registeredClient = await _registeredClientService.GetRegisteredClientAsync(packet.AuthorizationToken);
-            if (registeredClient == null)
-            {
-                await _packetHandlingService.InvalidPacketResponse(socketId);
-                return;
-            }
-
-            if (!await _webSocketManagerService.IsClientBound(socketId, registeredClient))
-            {
-                await _packetHandlingService.InternalErrorResponse(socketId);
-                return;
-            }
-
-            await _packetHandlingService.HandleErrorAsync(socketId, registeredClient, (PacketError)packet.PacketError, decryptedData, packet);
-            return;
-        }
-
-        public async Task ParseAndHandlePacketAsync(string socketId, DataPacketModel packet)
-        {
-
-            if (packet.PacketType == (uint)PacketType.Register)
-            {
-                await ParseRegisterPacketAsync(socketId, packet);
-                return;
-            }
-            else if (packet.PacketType == (uint)PacketType.Auth)
-            {
-                await ParseAuthPacketAsync(socketId, packet);
-                return;
-            }
-            else if (packet.PacketType == (uint)PacketType.RevokeAuth)
-            {
-                await ParseRevokeAuthPacketAsync(socketId, packet);
-                return;
-            }
-            else if (packet.PacketType == (uint)PacketType.Ack)
-            {
-                await ParseAckPacketAsync(socketId, packet);
-                return;
-            }
-            else if (packet.PacketType == (uint)PacketType.Data)
-            {
-                await ParseDataPacketAsync(socketId, packet);
-                return;
-            }
-            else if (packet.PacketType == (uint)PacketType.Error)
-            {
-                await ParseErrorPacketAsync(socketId, packet);
-                return;
-            }
-
-            await _packetHandlingService.InvalidPacketResponse(socketId);
-            return;
         }
 
         private DateTime LastPongTime { get; set; } = DateTime.UtcNow;
@@ -348,14 +98,19 @@ namespace Challenge2_Group16_GUI_WebAPI.Services
                         {
                             try
                             {
-                                var packet = DataPacketModel.Create(message);
-                                if (packet == null)
+                                using (var scope = _serviceScopeFactory.CreateScope())
                                 {
-                                    await _packetHandlingService.MalformedPacketResponse(socketId);
-                                }
-                                else
-                                {
-                                    await ParseAndHandlePacketAsync(socketId, packet);
+                                    var packetHandlingService = scope.ServiceProvider.GetRequiredService<PacketHandlingService>();
+                                    var packet = DataPacketModel.Create(message);
+                                    if (packet == null)
+                                    {
+                                        await packetHandlingService.MalformedPacketResponse(socketId);
+                                    }
+                                    else
+                                    {
+                                        await packetHandlingService.ParseAndHandlePacketAsync(socketId, packet);
+                                    }
+
                                 }
                             }
                             catch (Exception ex)

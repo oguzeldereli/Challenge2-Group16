@@ -6,7 +6,7 @@
 // Replace with your eduroam credentials
 char *ssid = "eduroam";
 char *USER = "zcabogu@ucl.ac.uk";
-char *PASS = "***REMOVED***";
+char *PASS = "xxxxxxxxxx";
 
 void setup()
 {
@@ -37,9 +37,9 @@ unsigned long previousMillis = 0;
 void loop()
 {
     websocket_keepalive();
-    /*
+    
     unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= 1000 && i2c_is_connected()) 
+    if (currentMillis - previousMillis >= 1000 /*&& i2c_is_connected()*/) 
     {
         previousMillis = currentMillis;
         
@@ -47,20 +47,20 @@ void loop()
         //i2c_write(&command, 1);
         //int len =  i2c_request(5); // constantly temp data
         //handle_response(len);
-        //send_value_to_server(0, getTime(), 30.3, 0);
+        send_value_to_server(0, getTime(), 30.3, 0);
 
         //command = 0x01;
         //i2c_write(&command, 1);
         //len =  i2c_request(5); // constantly ph data
         //handle_response(len);
-        //send_value_to_server(1, getTime(), 3.1, 0);
+        send_value_to_server(1, getTime(), 3.1, 0);
 
         //command = 0x02;
         //i2c_write(&command, 1);
         //len =  i2c_request(5); // constantly rpm data
         //handle_response(len);
-        //send_value_to_server(2, getTime(), 1000.41, 0);
+        send_value_to_server(2, getTime(), 1000.41, 0);
         Serial.println("sent");
     }
-    */
+    
 }

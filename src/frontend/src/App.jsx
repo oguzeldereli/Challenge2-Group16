@@ -22,7 +22,9 @@ import { startSSEConnection } from './common/eventHandler';
 function App() {
   const [devices, setDevices] =  useState([]);
   const [errors, setErrors] =  useState([]);
-  const [data, setData] =  useState([]);
+  const [tempdata, setTempData] =  useState([]);
+  const [phdata, setPhData] =  useState([]);
+  const [rpmdata, setRpmData] =  useState([]);
   const [selectedDevice, setSelectedDevice] =  useState(null);
   const [logs, setLogs] = useState([]);
 
@@ -40,7 +42,6 @@ function App() {
     const deviceData = JSON.parse(event.data);
     const client_id = deviceData.client_id;
     const data_type = deviceData.data.data_type;
-    console.log(data_type);
 
     if(data_type === "log")
     {
@@ -66,15 +67,15 @@ function App() {
     }
     else if (data_type === "temperature") 
     {
-      setData((prevData) => [...prevData, deviceData]);
-    }
-    else if (data_type === "rpm") 
-    {
-      setData((prevData) => [...prevData, deviceData]);
+      setTempData((prevData) => [...prevData, deviceData]);
     }
     else if (data_type === "ph") 
     {
-      setData((prevData) => [...prevData, deviceData]);
+      setPhData((prevData) => [...prevData, deviceData]);
+    }
+    else if (data_type === "rpm") 
+    {
+      setRpmData((prevData) => [...prevData, deviceData]);
     }
   };
   
@@ -155,7 +156,7 @@ function App() {
         <Router>
           <Routes>
             <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Dashboard data={data} logs={logs} selectedDevice={selectedDevice} devices={devices} setSelectedDevice={changeSelectedDevice}/>} />
+              <Route path="/" element={<Dashboard tempdata={tempdata} phdata={phdata} rpmdata={rpmdata} logs={logs} selectedDevice={selectedDevice} devices={devices} setSelectedDevice={changeSelectedDevice}/>} />
               <Route path="/logs" element={<Logs logs={logs} selectedDevice={selectedDevice} devices={devices} setSelectedDevice={changeSelectedDevice}/>} />
             </Route>  
 

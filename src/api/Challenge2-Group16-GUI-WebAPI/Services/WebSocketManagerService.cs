@@ -3,6 +3,8 @@ using Challenge2_Group16_GUI_WebAPI.Models;
 using Challenge2_Group16_GUI_WebAPI.Services;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using NuGet.Packaging.Signing;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
@@ -47,6 +49,18 @@ public class WebSocketManagerService
                         {
                             client_id = BitConverter.ToString(client.Identifier).Replace("-", "").ToLowerInvariant(),
                             action = "remove"
+                        });
+
+                        await _sseClientService.PublishAsJsonAsync("data", new
+                        {
+                            client_id = Convert.ToHexString(client.Identifier).ToLowerInvariant(),
+                            data = new
+                            {
+                                data_type = "log",
+                                time_stamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds(),
+                                log_level = "Information",
+                                log_message = $"Client {Convert.ToHexString(client.Identifier).ToLowerInvariant()} disconnected."
+                            }
                         });
                     }
                 }
@@ -103,6 +117,17 @@ public class WebSocketManagerService
                 action = "add"
             });
             Console.WriteLine($"Bound socket {socketId} to client {client.Id}");
+            await _sseClientService.PublishAsJsonAsync("data", new
+            {
+                client_id = Convert.ToHexString(client.Identifier).ToLowerInvariant(),
+                data = new
+                {
+                    data_type = "log",
+                    time_stamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds(),
+                    log_level = "Information",
+                    log_message = $"Client {Convert.ToHexString(client.Identifier).ToLowerInvariant()} connected."
+                }
+            });
             _sockets[key] = (socket, client.Id);
         }
     }
@@ -129,7 +154,17 @@ public class WebSocketManagerService
                 client_id = BitConverter.ToString(client.Identifier).Replace("-", "").ToLowerInvariant(),
                 action = "remove"
             });
-
+            await _sseClientService.PublishAsJsonAsync("data", new
+            {
+                client_id = Convert.ToHexString(client.Identifier).ToLowerInvariant(),
+                data = new
+                {
+                    data_type = "log",
+                    time_stamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds(),
+                    log_level = "Information",
+                    log_message = $"Client {Convert.ToHexString(client.Identifier).ToLowerInvariant()} disconnected."
+                }
+            });
             Console.WriteLine("Unbinded client");
             _sockets[key] = (_sockets[key].Item1, null);
         }

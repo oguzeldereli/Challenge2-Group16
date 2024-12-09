@@ -24,8 +24,9 @@ export default function CurrentDataPanel(props)
 
     useEffect(() => {
         selectedDeviceRef.current = props.selectedDevice;
-        if(props.selectedDevice)
+        if(selectedDeviceRef.current)
         {
+            console.log(selectedDeviceRef.current);
             setCurrentTargetTemp(props.selectedDevice.tempTarget);
             setCurrentTargetPH(props.selectedDevice.phTarget);
             setCurrentTargetRPM(props.selectedDevice.rpmTarget);
@@ -145,33 +146,32 @@ export default function CurrentDataPanel(props)
         };
     }, []);
 
-    function filterAndSortData(dataList, dataType) {
-        const filteredData = dataList.filter(item => item.data && item.data.data_type === dataType);
-    
-        const sortedData = filteredData.sort((a, b) => {
-            const timeA = new Date(a.data.time_stamp).getTime();
-            const timeB = new Date(b.data.time_stamp).getTime();
-            return timeA - timeB; 
-        });
-    
-        return sortedData;
-    }   
-
     useEffect(() => {
-        
-        const temp_data = filterAndSortData(props.data, "temperature");
-        const ph_data = filterAndSortData(props.data, "ph");
-        const rpm_data = filterAndSortData(props.data, "rpm");
-        
-        const last_temp_data = temp_data.length > 0 ? temp_data[temp_data.length - 1] : undefined;
-        const last_ph_data = ph_data.length > 0 ? ph_data[ph_data.length - 1] : undefined;
-        const last_rpm_data = rpm_data.length > 0 ? rpm_data[rpm_data.length - 1] : undefined;
+        if(props.selectedDevice)
+        {
+            const device_temp_data = props.tempdata.filter(x => x.client_id === props.selectedDevice.deviceId);
+            const last_temp_data = device_temp_data.length > 0 ? device_temp_data[device_temp_data.length - 1].data.data : undefined;
+            setCurrentTemp(last_temp_data);
+        }
+      }, [props.tempdata, props.selectedDevice]);
 
-        setCurrentTemp(last_temp_data);
-        setCurrentPH(last_ph_data);
-        setCurrentRPM(last_rpm_data);
+      useEffect(() => {
+        if(props.selectedDevice)
+        {
+            const device_ph_data = props.phdata.filter(x => x.client_id === props.selectedDevice.deviceId);
+            const last_ph_data = device_ph_data.length > 0 ? device_ph_data[device_ph_data.length - 1].data.data : undefined;
+            setCurrentPH(last_ph_data);
+        }
+      }, [props.phdata, props.selectedDevice]);
 
-      }, [props.data]);
+      useEffect(() => {
+        if(props.selectedDevice)
+        {
+            const device_rpm_data = props.rpmdata.filter(x => x.client_id === props.selectedDevice.deviceId);
+            const last_rpm_data = device_rpm_data.length > 0 ? device_rpm_data[device_rpm_data.length - 1].data.data : undefined;
+            setCurrentRPM(last_rpm_data);
+        }
+      }, [props.rpmdata, props.selectedDevice]);
 
     return (
         <Stack direction="row" sx={{justifyContent: "between", width: "100%", backgroundColor: "white"}} gap={1}>

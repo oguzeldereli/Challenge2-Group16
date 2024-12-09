@@ -5,9 +5,7 @@ import Tab, { tabClasses } from '@mui/joy/Tab';
 import { styled } from '@mui/material/styles';
 import { TabPanel } from '@mui/joy';
 import { GaugeContainer, GaugeReferenceArc, GaugeValueArc } from '@mui/x-charts';
-import TemperatureDataPanel from './TemperatureDataPanel';
-import PHDataPanel from './PHDataPanel';
-import RPMDataPanel from './RPMDataPanel';
+import DataPanel from './DataPanel';
 import { Stack, Typography } from '@mui/material';
 
 const CustomTab = styled(Tab)(({ theme }) => ({
@@ -23,7 +21,8 @@ const CustomTab = styled(Tab)(({ theme }) => ({
     },
   }));
 
-function CurrentDataTabs() {
+function CurrentDataTabs({selectedDevice, tempdata, phdata, rpmdata}) {
+
   return (
     <Stack sx={{flexGrow:"1"}}>
       <Typography fontSize={22} fontFamily={"'Host Grotesk', sans-serif"}>
@@ -50,13 +49,13 @@ function CurrentDataTabs() {
               </CustomTab>
           </TabList>
           <TabPanel value={0}>
-              <TemperatureDataPanel timeSetting="current" />
+              <DataPanel data={selectedDevice && tempdata && tempdata.filter(x => x.client_id === selectedDevice.deviceId)}  />
           </TabPanel>
           <TabPanel value={1}>
-            <PHDataPanel timeSetting="current" />
+            <DataPanel data={selectedDevice && phdata && phdata.filter(x => x.client_id === selectedDevice.deviceId)} />
           </TabPanel>
           <TabPanel value={2}>
-              <RPMDataPanel timeSetting="current" />
+              <DataPanel data={selectedDevice && rpmdata && rpmdata.filter(x => x.client_id === selectedDevice.deviceId)} />
           </TabPanel>
       </Tabs>
     </Stack>
