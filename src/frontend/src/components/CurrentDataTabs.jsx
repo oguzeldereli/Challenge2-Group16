@@ -49,13 +49,13 @@ function CurrentDataTabs({selectedDevice, tempdata, phdata, rpmdata}) {
               </CustomTab>
           </TabList>
           <TabPanel value={0}>
-              <DataPanel data={selectedDevice && tempdata && tempdata.filter(x => x.client_id === selectedDevice.deviceId)}  />
+              <DataPanel data={(selectedDevice && tempdata) ? tempdata.filter(x => x.client_id === selectedDevice.deviceId) : []}  />
           </TabPanel>
           <TabPanel value={1}>
-            <DataPanel data={selectedDevice && phdata && phdata.filter(x => x.client_id === selectedDevice.deviceId)} />
+            <DataPanel data={(selectedDevice && phdata) ? phdata.filter(x => x.client_id === selectedDevice.deviceId) : []} />
           </TabPanel>
           <TabPanel value={2}>
-              <DataPanel data={selectedDevice && rpmdata && rpmdata.filter(x => x.client_id === selectedDevice.deviceId)} />
+              <DataPanel data={(selectedDevice && rpmdata) ? rpmdata.filter(x => x.client_id === selectedDevice.deviceId) : []} />
           </TabPanel>
       </Tabs>
     </Stack>

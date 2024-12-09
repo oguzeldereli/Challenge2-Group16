@@ -123,3 +123,63 @@ export async function GetData(id, type, timestamp1, timestamp2)
         console.error("Authentication check failed:", error);
     }
 }
+
+export async function StartDevice(id)
+{
+    if(!isAuthenticated())
+    {
+        return null;
+    }
+    
+    const accessToken = localStorage.getItem("accessToken")
+    try {
+        const response = await fetch(`${api}/devices/${id}/start`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        const responseData = await response.json();
+
+        console.log(responseData);
+        if (response.ok && responseData) {
+            return responseData;
+        }
+
+
+        return null;
+    } catch (error) {
+        console.error("Authentication check failed:", error);
+    }
+}
+
+export async function PauseDevice(id)
+{
+    if(!isAuthenticated())
+    {
+        return null;
+    }
+    
+    const accessToken = localStorage.getItem("accessToken")
+    try {
+        const response = await fetch(`${api}/devices/${id}/pause`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        const responseData = await response.json();
+
+        console.log(responseData);
+        if (response.ok && responseData) {
+            return responseData;
+        }
+
+
+        return null;
+    } catch (error) {
+        console.error("Authentication check failed:", error);
+    }
+}

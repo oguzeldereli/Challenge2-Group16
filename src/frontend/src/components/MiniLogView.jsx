@@ -1,15 +1,12 @@
 import { Box, Button, IconButton, Tooltip, Typography } from "@mui/joy";
 import { Input, Stack } from "@mui/joy";
 import { ArrowRightIcon } from "@mui/x-date-pickers";
+import { format } from "date-fns";
 import { useEffect } from "react";
 
 
 export default function MiniLogView(props)
 {
-    useEffect(() => {
-        console.log(props.logs);
-    }, [props.logs]);
-
     const colorMap = {
         "Error": "danger",
         "Warning": "warnings",
@@ -31,9 +28,13 @@ export default function MiniLogView(props)
             }}>
                 {props.logs.map((log, index) => {
                     let color = colorMap[log.type];
+                    if(index <= props.logs.length - 4)
+                    {
+                        return;
+                    }
                     return (
-                        <Typography key={log.time + log.type + index}>
-                            <Typography fontFamily={"'Geist Mono', monospace"} color="black" level="body-sm">[{log.time}]</Typography>
+                        <Typography key={log.timeStamp.toString() + log.type + index}>
+                            <Typography fontFamily={"'Geist Mono', monospace"} color="black" level="body-sm">[{format(log.timeStamp * 1000, "pp")}]</Typography>
                             <Typography fontFamily={"'Geist Mono', monospace"} color={color} level="body-sm">[{log.type}] : </Typography>
                             <Typography fontFamily={"'Geist Mono', monospace"} color="black" level="body-sm">{log.message}</Typography>
                         </Typography>

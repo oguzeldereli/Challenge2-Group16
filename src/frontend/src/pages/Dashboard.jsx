@@ -8,9 +8,22 @@ import MiniLogView from "../components/MiniLogView"
 import PastDataTabs from "../components/PastDataTabs"
 import { getRegisteredAndConnectedDevices } from "../common/apiUtils"
 import { useEffect } from "react"
+import { startSSEConnection } from "../common/eventHandler"
 
 export default function Dashboard(props)
 {
+
+    useEffect(() => {
+
+        async function setAppStart() 
+        { 
+          props.setDevices(await getRegisteredAndConnectedDevices());
+          await startSSEConnection(props.handleDataPacket, props.handleErrorPacket, props.handleDevicePacket);
+        }
+  
+        setAppStart();
+    }, []);
+
     return (
         <>
             <Navbar />

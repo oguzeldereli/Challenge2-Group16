@@ -13,7 +13,7 @@ void setup()
     Serial.begin(115200); // initialize serial connection
     delay(1000);          // give time for serial to init
     Serial.println("Initializing I2C connection with Arduino...");
-    // i2c_init_listener();
+    i2c_init_listener();
     Serial.println("Done.");
 
     bool connected = true;
@@ -31,6 +31,7 @@ void setup()
     Serial.println("Initializing websocket connection with API...");
     websocket_begin(); // initialize api connection
     Serial.println("Done.");
+    // set_status(1);
 }
 
 unsigned long previousMillis = 0;
@@ -39,27 +40,26 @@ void loop()
     websocket_keepalive();
     
     unsigned long currentMillis = millis();
-    if (currentMillis - previousMillis >= 1000 /*&& i2c_is_connected()*/) 
+    if (currentMillis - previousMillis >= 1000 && get_status() == 1) 
     {
         previousMillis = currentMillis;
-        
-        //uint8_t command = 0x00;
-        //i2c_write(&command, 1);
-        //int len =  i2c_request(5); // constantly temp data
-        //handle_response(len);
-        send_value_to_server(0, getTime(), 30.3, 0);
+        uint8_t command = 0x00;
+        i2c_write(&command, 1);
+        int len =  i2c_request(5); // constantly send temp data
+        handle_response(len);
+        // send_value_to_server(0, getTime(), 30.3, 0);
 
-        //command = 0x01;
-        //i2c_write(&command, 1);
-        //len =  i2c_request(5); // constantly ph data
-        //handle_response(len);
-        send_value_to_server(1, getTime(), 3.1, 0);
+        command = 0x01;
+        i2c_write(&command, 1);
+        len =  i2c_request(5); // constantly send ph data
+        handle_response(len);
+        // send_value_to_server(1, getTime(), 3.1, 0);
 
-        //command = 0x02;
-        //i2c_write(&command, 1);
-        //len =  i2c_request(5); // constantly rpm data
-        //handle_response(len);
-        send_value_to_server(2, getTime(), 1000.41, 0);
+        command = 0x02;
+        i2c_write(&command, 1);
+        len =  i2c_request(5); // constantly send rpm data
+        handle_response(len);
+        // send_value_to_server(2, getTime(), 1000.41, 0);
         Serial.println("sent");
     }
     
