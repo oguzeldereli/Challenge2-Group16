@@ -80,7 +80,7 @@ void onReceive(int length)
       memset(responseDataBuffer, 0, 64);
       responseDataBuffer[0] = 0;
       memcpy(responseDataBuffer + 1, &current_temp, sizeof(double));
-      responseLength = 9;
+      responseLength = 5;
       isResponseReady = true;
       return;
     }
@@ -89,7 +89,7 @@ void onReceive(int length)
       memset(responseDataBuffer, 0, 64);
       responseDataBuffer[0] = 1;
       memcpy(responseDataBuffer + 1, &current_pH, sizeof(double));
-      responseLength = 9;
+      responseLength = 5;
       isResponseReady = true;
       return;
     }
@@ -98,7 +98,7 @@ void onReceive(int length)
       memset(responseDataBuffer, 0, 64);
       responseDataBuffer[0] = 2;
       memcpy(responseDataBuffer + 1, &current_speed, sizeof(double));
-      responseLength = 9;
+      responseLength = 5;
       isResponseReady = true;
       return;
     }
